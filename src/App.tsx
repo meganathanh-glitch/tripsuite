@@ -109,9 +109,12 @@ const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (email: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('SignInScreen handleSubmit called');
     setLoading(true);
     try {
       await onSignIn(email, password);
+    } catch (err) {
+      console.error('SignInScreen handleSubmit error:', err);
     } finally {
       setLoading(false);
     }
@@ -1382,10 +1385,18 @@ export default function App() {
   }, [expenses]);
 
   const handleSignIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log('Attempting sign in for:', email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      console.error('Sign in error:', error.message);
       alert(error.message);
       throw error;
+    }
+    console.log('Sign in successful');
+    if (data.session) {
+      setIsLoggedIn(true);
+      setUserName(data.session.user.user_metadata.full_name || data.session.user.email?.split('@')[0] || 'Traveler');
+      setCurrentScreen('trips');
     }
   };
 
