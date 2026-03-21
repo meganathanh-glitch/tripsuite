@@ -35,7 +35,10 @@ import {
   Filter,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Plane,
+  Hotel,
+  Image as ImageIcon
 } from 'lucide-react';
 import { MOCK_TRIPS, MOCK_PACKING_LIST } from './constants';
 import { Trip, Screen, PackingItem, Expense } from './types';
@@ -109,7 +112,7 @@ const getDaysUntil = (dateRange: string) => {
   }
 };
 
-const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (trip: Trip) => void }) => {
+const HomeScreen = ({ trips, onSelectTrip, onNavigate }: { trips: Trip[], onSelectTrip: (trip: Trip) => void, onNavigate: (screen: Screen) => void }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const ongoingTrip = trips.find(t => t.status === 'ongoing');
   const upcomingTrip = trips.find(t => t.status === 'upcoming');
@@ -196,11 +199,15 @@ const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (tri
         <div className="text-right relative z-10">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Forecast</div>
           <div className="flex gap-3">
-            {['Mon', 'Tue', 'Wed'].map(day => (
-              <div key={day} className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-slate-500">{day}</span>
+            {[
+              { day: 'Mon', temp: 24 },
+              { day: 'Tue', temp: 22 },
+              { day: 'Wed', temp: 26 }
+            ].map(item => (
+              <div key={item.day} className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-slate-500">{item.day}</span>
                 <Sun size={16} className="text-amber-500 my-1" />
-                <span className="text-xs font-bold">25°</span>
+                <span className="text-xs font-bold">{item.temp}°</span>
               </div>
             ))}
           </div>
@@ -212,7 +219,12 @@ const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (tri
         <section className="space-y-4">
           <div className="flex justify-between items-end">
             <h2 className="text-xl font-bold font-headline">Ongoing Trip</h2>
-            <button className="text-xs font-bold text-mountain-primary uppercase tracking-widest">View All</button>
+            <button 
+              onClick={() => onNavigate('trips')}
+              className="text-xs font-bold text-mountain-primary uppercase tracking-widest"
+            >
+              View All
+            </button>
           </div>
           <div 
             onClick={() => onSelectTrip(ongoingTrip)}
@@ -239,7 +251,10 @@ const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (tri
 
       {/* Quick Actions */}
       <section className="grid grid-cols-2 gap-4">
-        <button className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-colors">
+        <button 
+          onClick={() => onNavigate('add')}
+          className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-all hover:scale-105 active:scale-95"
+        >
           <div className="w-10 h-10 rounded-2xl bg-mountain-primary/10 text-mountain-primary flex items-center justify-center">
             <Plus size={20} />
           </div>
@@ -248,7 +263,10 @@ const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (tri
             <div className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Start Planning</div>
           </div>
         </button>
-        <button className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-colors">
+        <button 
+          onClick={() => onNavigate('explore')}
+          className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-all hover:scale-105 active:scale-95"
+        >
           <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
             <Search size={20} />
           </div>
@@ -361,11 +379,24 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
     guests: 1,
     type: 'Mountain'
   });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name.trim()) newErrors.name = 'Trip name is required';
+    if (!formData.destination.trim()) newErrors.destination = 'Destination is required';
+    if (!formData.startDate) newErrors.startDate = 'Start date is required';
+    if (!formData.endDate) newErrors.endDate = 'End date is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     onCreate({
       name: formData.name,
+      destination: formData.destination,
       dateRange: `${formData.startDate} — ${formData.endDate}`,
       guests: formData.guests,
       status: 'upcoming',
@@ -395,50 +426,61 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Trip Name</label>
             <input 
-              required
               value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => {
+                setFormData({...formData, name: e.target.value});
+                if (errors.name) setErrors({...errors, name: ''});
+              }}
               placeholder="e.g. Summer Getaway"
-              className="w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+              className={`w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 ${errors.name ? 'ring-rose-500/50' : 'focus:ring-mountain-primary/20'}`}
             />
+            {errors.name && <p className="text-rose-500 text-[10px] font-bold ml-4 uppercase tracking-widest">{errors.name}</p>}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Destination</label>
             <input 
-              required
               value={formData.destination}
-              onChange={e => setFormData({...formData, destination: e.target.value})}
+              onChange={e => {
+                setFormData({...formData, destination: e.target.value});
+                if (errors.destination) setErrors({...errors, destination: ''});
+              }}
               placeholder="e.g. Manali, India"
-              className="w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+              className={`w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 ${errors.destination ? 'ring-rose-500/50' : 'focus:ring-mountain-primary/20'}`}
             />
+            {errors.destination && <p className="text-rose-500 text-[10px] font-bold ml-4 uppercase tracking-widest">{errors.destination}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Start Date</label>
               <input 
-                required
                 type="date"
                 value={formData.startDate}
-                onChange={e => setFormData({...formData, startDate: e.target.value})}
-                className="w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+                onChange={e => {
+                  setFormData({...formData, startDate: e.target.value});
+                  if (errors.startDate) setErrors({...errors, startDate: ''});
+                }}
+                className={`w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 ${errors.startDate ? 'ring-rose-500/50' : 'focus:ring-mountain-primary/20'}`}
               />
+              {errors.startDate && <p className="text-rose-500 text-[10px] font-bold ml-4 uppercase tracking-widest">{errors.startDate}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">End Date</label>
               <input 
-                required
                 type="date"
                 value={formData.endDate}
-                onChange={e => setFormData({...formData, endDate: e.target.value})}
-                className="w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+                onChange={e => {
+                  setFormData({...formData, endDate: e.target.value});
+                  if (errors.endDate) setErrors({...errors, endDate: ''});
+                }}
+                className={`w-full bg-surface-container-lowest p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 ${errors.endDate ? 'ring-rose-500/50' : 'focus:ring-mountain-primary/20'}`}
               />
+              {errors.endDate && <p className="text-rose-500 text-[10px] font-bold ml-4 uppercase tracking-widest">{errors.endDate}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Guests</label>
               <input 
-                required
                 type="number"
                 min="1"
                 value={formData.guests}
@@ -456,6 +498,10 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
                 <option>Mountain</option>
                 <option>Beach</option>
                 <option>City</option>
+                <option>Adventure</option>
+                <option>Cultural</option>
+                <option>Road Trip</option>
+                <option>Cruise</option>
               </select>
             </div>
           </div>
@@ -471,9 +517,179 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
   );
 };
 
-const TripDetailScreen = ({ trip, onBack }: { trip: Trip, onBack: () => void }) => {
+const TripDetailScreen = ({ trip, onBack, expenses }: { trip: Trip, onBack: () => void, expenses: Expense[] }) => {
   const [activeDay, setActiveDay] = useState(1);
+  const [activeTab, setActiveTab] = useState('Itinerary');
   const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
+
+  const tripExpenses = expenses.filter(e => e.tripId === trip.id);
+  const totalSpent = tripExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Itinerary':
+        return (
+          <div className="mt-8 space-y-10 relative">
+            {trip.itinerary.length > 0 && <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-slate-200" />}
+            
+            {trip.itinerary.find(d => d.day === activeDay)?.activities.map((activity) => (
+              <div key={activity.id} className="relative pl-10">
+                <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-mountain-primary/10 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-mountain-primary" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-mountain-primary uppercase tracking-widest">
+                    <Clock size={12} /> {activity.time}
+                  </div>
+                  <h3 className="text-xl font-bold font-headline">{activity.title}</h3>
+                  <div className="flex items-center gap-1 text-slate-400 text-xs font-medium">
+                    <MapPin size={12} /> {activity.location}
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed">{activity.description}</p>
+                  
+                  {activity.image && (
+                    <div className="mt-4 rounded-3xl overflow-hidden h-48">
+                      <img src={activity.image} alt={activity.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-2">
+                    {activity.type === 'travel' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Car size={16} /></div>}
+                    {activity.type === 'activity' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Camera size={16} /></div>}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {trip.itinerary.find(d => d.day === activeDay)?.dinner && (
+              <div className="bg-surface-container-lowest p-4 rounded-3xl flex items-center justify-between mt-8 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <Utensils size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dinner</div>
+                    <div className="text-sm font-bold">{trip.itinerary.find(d => d.day === activeDay)?.dinner}</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
+              </div>
+            )}
+          </div>
+        );
+      case 'Flights':
+        return (
+          <div className="mt-8 space-y-4">
+            {trip.flights && trip.flights.length > 0 ? trip.flights.map((flight, i) => (
+              <div key={i} className="bg-white p-6 rounded-3xl shadow-sm space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Plane size={20} />
+                    </div>
+                    <div>
+                      <div className="font-bold">{flight.airline}</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{flight.flightNumber}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-mountain-primary">Terminal {flight.terminal}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                  <div>
+                    <div className="text-2xl font-black font-headline">{flight.departureTime}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Departure</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center px-4">
+                    <div className="h-[1px] flex-1 bg-slate-100 relative">
+                      <Plane size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black font-headline">{flight.arrivalTime}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Arrival</div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-12 text-slate-400 italic font-medium">No flight details added.</div>
+            )}
+          </div>
+        );
+      case 'Stays':
+        return (
+          <div className="mt-8 space-y-4">
+            {trip.stays && trip.stays.length > 0 ? trip.stays.map((stay, i) => (
+              <div key={i} className="bg-white p-6 rounded-3xl shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Hotel size={20} />
+                  </div>
+                  <div>
+                    <div className="font-bold">{stay.hotelName}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ref: {stay.bookingRef}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Check-in</div>
+                    <div className="font-bold text-sm">{stay.checkIn}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Check-out</div>
+                    <div className="font-bold text-sm">{stay.checkOut}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Room Type</div>
+                    <div className="font-bold text-sm">{stay.roomType}</div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-12 text-slate-400 italic font-medium">No accommodation details added.</div>
+            )}
+          </div>
+        );
+      case 'Budget':
+        return (
+          <div className="mt-8 space-y-6">
+            <div className="bg-white p-6 rounded-3xl shadow-sm text-center">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Trip Spending</div>
+              <div className="text-3xl font-black font-headline text-mountain-primary">₹{totalSpent.toLocaleString()}</div>
+            </div>
+            <div className="space-y-3">
+              {tripExpenses.map(expense => (
+                <div key={expense.id} className="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                  <div>
+                    <div className="font-bold text-sm">{expense.description}</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{expense.category}</div>
+                  </div>
+                  <div className="text-sm font-black text-on-surface">-₹{expense.amount}</div>
+                </div>
+              ))}
+              {tripExpenses.length === 0 && (
+                <div className="text-center py-12 text-slate-400 italic font-medium">No expenses logged for this trip.</div>
+              )}
+            </div>
+          </div>
+        );
+      case 'Photos':
+        return (
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            {trip.photos && trip.photos.length > 0 ? trip.photos.map((photo, i) => (
+              <div key={i} className="aspect-square rounded-3xl overflow-hidden shadow-sm">
+                <img src={photo} alt={`Trip photo ${i+1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              </div>
+            )) : (
+              <div className="col-span-2 text-center py-12 text-slate-400 italic font-medium">No photos uploaded yet.</div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <motion.div
@@ -517,8 +733,9 @@ const TripDetailScreen = ({ trip, onBack }: { trip: Trip, onBack: () => void }) 
         {['Itinerary', 'Flights', 'Stays', 'Budget', 'Photos'].map(tab => (
           <button 
             key={tab}
+            onClick={() => setActiveTab(tab)}
             className={`text-sm font-bold uppercase tracking-widest pb-2 whitespace-nowrap transition-all ${
-              tab === 'Itinerary' ? 'text-mountain-primary border-b-2 border-mountain-primary' : 'text-slate-400'
+              tab === activeTab ? 'text-mountain-primary border-b-2 border-mountain-primary' : 'text-slate-400'
             }`}
           >
             {tab}
@@ -526,81 +743,36 @@ const TripDetailScreen = ({ trip, onBack }: { trip: Trip, onBack: () => void }) 
         ))}
       </div>
 
-      {/* Day Selector */}
-      <div className="flex gap-3 mt-8 overflow-x-auto pb-2 scrollbar-hide">
-        {trip.itinerary.length > 0 ? trip.itinerary.map(day => (
-          <button
-            key={day.day}
-            onClick={() => setActiveDay(day.day)}
-            className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${
-              activeDay === day.day 
-                ? 'bg-mountain-primary text-white shadow-lg shadow-mountain-primary/20' 
-                : 'bg-surface-container-lowest text-slate-500'
-            }`}
-          >
-            Day {day.day}
-          </button>
-        )) : (
-          <div className="text-slate-400 font-medium text-sm italic">No itinerary planned yet.</div>
-        )}
-      </div>
+      {/* Day Selector (only for Itinerary) */}
+      {activeTab === 'Itinerary' && (
+        <div className="flex gap-3 mt-8 overflow-x-auto pb-2 scrollbar-hide">
+          {trip.itinerary.length > 0 ? trip.itinerary.map(day => (
+            <button
+              key={day.day}
+              onClick={() => setActiveDay(day.day)}
+              className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${
+                activeDay === day.day 
+                  ? 'bg-mountain-primary text-white shadow-lg shadow-mountain-primary/20' 
+                  : 'bg-surface-container-lowest text-slate-500'
+              }`}
+            >
+              Day {day.day}
+            </button>
+          )) : (
+            <div className="text-slate-400 font-medium text-sm italic">No itinerary planned yet.</div>
+          )}
+        </div>
+      )}
 
-      {/* Itinerary Content */}
-      <div className="mt-8 space-y-10 relative">
-        {trip.itinerary.length > 0 && <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-slate-200" />}
-        
-        {trip.itinerary.find(d => d.day === activeDay)?.activities.map((activity) => (
-          <div key={activity.id} className="relative pl-10">
-            <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-mountain-primary/10 flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-mountain-primary" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-black text-mountain-primary uppercase tracking-widest">
-                <Clock size={12} /> {activity.time}
-              </div>
-              <h3 className="text-xl font-bold font-headline">{activity.title}</h3>
-              <div className="flex items-center gap-1 text-slate-400 text-xs font-medium">
-                <MapPin size={12} /> {activity.location}
-              </div>
-              <p className="text-slate-600 text-sm leading-relaxed">{activity.description}</p>
-              
-              {activity.image && (
-                <div className="mt-4 rounded-3xl overflow-hidden h-48">
-                  <img src={activity.image} alt={activity.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                </div>
-              )}
-
-              <div className="flex gap-2 mt-2">
-                {activity.type === 'travel' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Car size={16} /></div>}
-                {activity.type === 'activity' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Camera size={16} /></div>}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Footer Info */}
-        {trip.itinerary.find(d => d.day === activeDay)?.dinner && (
-          <div className="bg-surface-container-lowest p-4 rounded-3xl flex items-center justify-between mt-8 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
-                <Utensils size={18} />
-              </div>
-              <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dinner</div>
-                <div className="text-sm font-bold">{trip.itinerary.find(d => d.day === activeDay)?.dinner}</div>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </div>
-        )}
-      </div>
+      {renderTabContent()}
     </motion.div>
   );
 };
 
-const PackingListScreen = ({ items, onToggle, onAddItem }: { items: PackingItem[], onToggle: (id: string) => void, onAddItem: (cat: string, name: string) => void }) => {
+const PackingListScreen = ({ items, onToggle, onAddItem, trips }: { items: PackingItem[], onToggle: (id: string) => void, onAddItem: (cat: string, name: string, tripId: string) => void, trips: Trip[] }) => {
   const [newItemName, setNewItemName] = useState<{ [key: string]: string }>({});
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id || '');
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(items.map(i => i.category)));
@@ -608,11 +780,13 @@ const PackingListScreen = ({ items, onToggle, onAddItem }: { items: PackingItem[
   }, [items]);
 
   const handleAdd = (cat: string) => {
-    if (!newItemName[cat]) return;
-    onAddItem(cat, newItemName[cat]);
+    if (!newItemName[cat] || !selectedTripId) return;
+    onAddItem(cat, newItemName[cat], selectedTripId);
     setNewItemName({ ...newItemName, [cat]: '' });
     setIsAdding(null);
   };
+
+  const filteredItems = items.filter(i => i.tripId === selectedTripId);
 
   return (
     <motion.div
@@ -629,18 +803,38 @@ const PackingListScreen = ({ items, onToggle, onAddItem }: { items: PackingItem[
         </div>
         <div className="text-right">
           <div className="text-2xl font-black font-headline text-mountain-primary">
-            {items.filter(i => i.packed).length}/{items.length}
+            {filteredItems.filter(i => i.packed).length}/{filteredItems.length}
           </div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Packed</div>
         </div>
       </header>
+
+      {/* Trip Selector */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Select Trip</label>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {trips.map(trip => (
+            <button
+              key={trip.id}
+              onClick={() => setSelectedTripId(trip.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                selectedTripId === trip.id
+                  ? 'bg-mountain-primary text-white shadow-md shadow-mountain-primary/20'
+                  : 'bg-surface-container-lowest text-slate-500'
+              }`}
+            >
+              {trip.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-8">
         {categories.map(cat => (
           <section key={cat} className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 pb-2">{cat}</h2>
             <div className="space-y-3">
-              {items.filter(i => i.category === cat).map(item => (
+              {filteredItems.filter(i => i.category === cat).map(item => (
                 <button
                   key={item.id}
                   onClick={() => onToggle(item.id)}
@@ -711,7 +905,7 @@ const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expens
 
   const tripExpenses = expenses.filter(e => e.tripId === selectedTripId);
   const totalSpent = tripExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalBudget = 5000; // Mock budget for now
+  const totalBudget = 500000; // Mock budget in Rupees
   const remaining = totalBudget - totalSpent;
   const progress = Math.min((totalSpent / totalBudget) * 100, 100);
 
@@ -771,11 +965,11 @@ const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expens
         <div className="flex justify-between items-end">
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Spent</div>
-            <div className="text-3xl font-black font-headline text-mountain-primary">${totalSpent.toLocaleString()}</div>
+            <div className="text-3xl font-black font-headline text-mountain-primary">₹{totalSpent.toLocaleString()}</div>
           </div>
           <div className="text-right">
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Remaining</div>
-            <div className="text-lg font-bold text-slate-700">${remaining.toLocaleString()}</div>
+            <div className="text-lg font-bold text-slate-700">₹{remaining.toLocaleString()}</div>
           </div>
         </div>
 
@@ -789,7 +983,7 @@ const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expens
           </div>
           <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <span>0%</span>
-            <span>Budget: ${totalBudget.toLocaleString()}</span>
+            <span>Budget: ₹{totalBudget.toLocaleString()}</span>
             <span>100%</span>
           </div>
         </div>
@@ -821,7 +1015,7 @@ const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expens
                     <div className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{expense.category} • {expense.date}</div>
                   </div>
                 </div>
-                <div className="text-sm font-black text-on-surface">-${expense.amount}</div>
+                <div className="text-sm font-black text-on-surface">-₹{expense.amount}</div>
               </div>
             );
           }) : (
@@ -904,7 +1098,52 @@ const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expens
   );
 };
 
-const ProfileScreen = () => {
+const ExploreScreen = () => {
+  const destinations = [
+    { name: 'Swiss Alps', country: 'Switzerland', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80', tag: 'Mountain' },
+    { name: 'Santorini', country: 'Greece', image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=80', tag: 'Beach' },
+    { name: 'Kyoto', country: 'Japan', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80', tag: 'Cultural' },
+    { name: 'Amalfi Coast', country: 'Italy', image: 'https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?auto=format&fit=crop&w=800&q=80', tag: 'Coastal' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-8 pb-24"
+    >
+      <header>
+        <h1 className="text-4xl font-black font-headline tracking-tight">Explore</h1>
+        <p className="text-slate-500 font-medium">Discover your next adventure.</p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6">
+        {destinations.map((dest, i) => (
+          <div key={i} className="relative h-64 rounded-[40px] overflow-hidden group shadow-lg">
+            <img src={dest.image} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute top-6 right-6">
+              <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                {dest.tag}
+              </span>
+            </div>
+            <div className="absolute bottom-8 left-8">
+              <h3 className="text-2xl font-black font-headline text-white">{dest.name}</h3>
+              <p className="text-white/70 text-sm font-medium">{dest.country}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
+  const totalPhotos = trips.reduce((sum, trip) => sum + (trip.photos?.length || 0), 0);
+  const countries = new Set(trips.map(t => t.destination.split(',').pop()?.trim())).size;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -936,9 +1175,9 @@ const ProfileScreen = () => {
       {/* Stats Grid */}
       <section className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Trips', value: '12', icon: Globe },
-          { label: 'Countries', value: '8', icon: MapIcon },
-          { label: 'Photos', value: '1.2k', icon: Camera },
+          { label: 'Trips', value: trips.length.toString(), icon: Globe },
+          { label: 'Countries', value: countries.toString(), icon: MapIcon },
+          { label: 'Photos', value: totalPhotos >= 1000 ? `${(totalPhotos/1000).toFixed(1)}k` : totalPhotos.toString(), icon: Camera },
         ].map(stat => (
           <div key={stat.label} className="bg-surface-container-lowest p-4 rounded-3xl text-center flex flex-col items-center gap-2 shadow-sm">
             <stat.icon size={16} className="text-mountain-primary" />
@@ -975,12 +1214,6 @@ const ProfileScreen = () => {
 
       {/* Bottom Actions */}
       <section className="space-y-3 pt-4">
-        <button className="w-full bg-surface-container-lowest p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:bg-white/60 transition-colors">
-          <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center">
-            <Settings size={20} />
-          </div>
-          <span className="font-bold text-sm">Settings</span>
-        </button>
         <button className="w-full bg-rose-50 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:bg-rose-100 transition-colors text-rose-600">
           <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
             <LogOut size={20} />
@@ -1031,11 +1264,15 @@ export default function App() {
     const trip: Trip = {
       id: Math.random().toString(36).substr(2, 9),
       name: newTrip.name || 'New Trip',
+      destination: newTrip.destination || '',
       dateRange: newTrip.dateRange || '',
       guests: newTrip.guests || 1,
       status: 'upcoming',
-      image: newTrip.image || '',
-      itinerary: []
+      image: newTrip.image || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
+      itinerary: [],
+      flights: [],
+      stays: [],
+      photos: []
     };
     setTrips([trip, ...trips]);
     setCurrentScreen('trips');
@@ -1045,12 +1282,13 @@ export default function App() {
     setPackingItems(prev => prev.map(item => item.id === id ? { ...item, packed: !item.packed } : item));
   };
 
-  const handleAddPackingItem = (category: string, name: string) => {
+  const handleAddPackingItem = (category: string, name: string, tripId: string) => {
     const newItem: PackingItem = {
       id: Math.random().toString(36).substr(2, 9),
       category,
       name,
-      packed: false
+      packed: false,
+      tripId
     };
     setPackingItems([...packingItems, newItem]);
   };
@@ -1070,7 +1308,7 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} />;
+        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
       case 'trips':
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} />;
       case 'add':
@@ -1078,15 +1316,17 @@ export default function App() {
       case 'budget':
         return <BudgetScreen trips={trips} expenses={expenses} onAddExpense={handleAddExpense} />;
       case 'packing':
-        return <PackingListScreen items={packingItems} onToggle={handleTogglePacking} onAddItem={handleAddPackingItem} />;
+        return <PackingListScreen items={packingItems} onToggle={handleTogglePacking} onAddItem={handleAddPackingItem} trips={trips} />;
       case 'profile':
-        return <ProfileScreen />;
+        return <ProfileScreen trips={trips} />;
+      case 'explore':
+        return <ExploreScreen />;
       case 'trip-detail':
         return selectedTrip ? (
-          <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} />
-        ) : <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} />;
+          <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} expenses={expenses} />
+        ) : <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
       default:
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} />;
+        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
     }
   };
 

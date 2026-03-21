@@ -4,6 +4,7 @@ export const MOCK_TRIPS: Trip[] = [
   {
     id: '1',
     name: 'Nilgiris Family Trip',
+    destination: 'Ooty, India',
     dateRange: 'May 12 — May 18',
     guests: 4,
     status: 'ongoing',
@@ -48,33 +49,85 @@ export const MOCK_TRIPS: Trip[] = [
           }
         ]
       }
+    ],
+    flights: [
+      {
+        airline: 'IndiGo',
+        flightNumber: '6E-2134',
+        departureTime: '08:00 AM',
+        arrivalTime: '10:30 AM',
+        terminal: 'T1'
+      }
+    ],
+    stays: [
+      {
+        hotelName: 'Sterling Fern Hill',
+        checkIn: 'May 12',
+        checkOut: 'May 18',
+        roomType: 'Family Suite',
+        bookingRef: 'SFH-99281'
+      }
+    ],
+    photos: [
+      'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=400',
+      'https://images.unsplash.com/photo-1581791534721-e599df4417f7?w=400',
+      'https://images.unsplash.com/photo-1590050752117-23a9d7fc0b29?w=400',
+      'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=400'
     ]
   },
   {
     id: '2',
     name: 'Bali Escape',
+    destination: 'Ubud, Bali',
     dateRange: 'June 20 — June 30',
     guests: 2,
     status: 'upcoming',
     image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800',
-    itinerary: []
+    itinerary: [],
+    flights: [
+      {
+        airline: 'AirAsia',
+        flightNumber: 'AK-123',
+        departureTime: '11:00 PM',
+        arrivalTime: '06:00 AM',
+        terminal: 'T3'
+      }
+    ],
+    stays: [
+      {
+        hotelName: 'Maya Ubud Resort',
+        checkIn: 'June 20',
+        checkOut: 'June 30',
+        roomType: 'Pool Villa',
+        bookingRef: 'MU-7712'
+      }
+    ],
+    photos: [
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
+      'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400'
+    ]
   },
   {
     id: '3',
     name: 'Paris Autumn',
+    destination: 'Paris, France',
     dateRange: 'Oct 10 — Oct 15',
     guests: 2,
     status: 'completed',
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
-    itinerary: []
+    itinerary: [],
+    photos: [
+      'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
+      'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400'
+    ]
   }
 ];
 
 export const MOCK_PACKING_LIST: PackingItem[] = [
-  { id: 'p1', category: 'Essentials', name: 'Passport', packed: true },
-  { id: 'p2', category: 'Essentials', name: 'Travel Insurance', packed: false },
-  { id: 'p3', category: 'Clothing', name: 'Light Jacket', packed: false },
-  { id: 'p4', category: 'Clothing', name: 'Hiking Boots', packed: true },
-  { id: 'p5', category: 'Electronics', name: 'Power Bank', packed: true },
-  { id: 'p6', category: 'Electronics', name: 'Camera Gear', packed: false },
+  { id: 'p1', tripId: '1', category: 'Essentials', name: 'Passport', packed: true },
+  { id: 'p2', tripId: '1', category: 'Essentials', name: 'Travel Insurance', packed: false },
+  { id: 'p3', tripId: '1', category: 'Clothing', name: 'Light Jacket', packed: false },
+  { id: 'p4', tripId: '1', category: 'Clothing', name: 'Hiking Boots', packed: true },
+  { id: 'p5', tripId: '1', category: 'Electronics', name: 'Power Bank', packed: true },
+  { id: 'p6', tripId: '1', category: 'Electronics', name: 'Camera Gear', packed: false },
 ];
