@@ -620,6 +620,8 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
   );
 };
 
+const GEMINI_API_KEY = 'AIzaSyC3UVbfNOHrMqOVkLMbODFnnsFZ9aAMwGE';
+
 const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip, onBack: () => void, expenses: Expense[], onUpdateTrip: (trip: Trip) => void }) => {
   const [activeDay, setActiveDay] = useState(1);
   const [activeTab, setActiveTab] = useState('Itinerary');
@@ -641,48 +643,45 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const handleAiGenerate = async () => {
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Generate a detailed day-by-day itinerary for a trip to ${trip.destination}. 
-        Trip Dates: ${trip.dateRange}. 
-        Style: ${aiOptions.style}. 
-        Budget: ${aiOptions.budget}. 
-        Interests: ${aiOptions.interests.join(', ')}.
-        Return a JSON array of days, each with a 'day' number, 'title', and an 'activities' array.
-        Each activity should have 'time', 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                day: { type: Type.NUMBER },
-                title: { type: Type.STRING },
-                activities: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      time: { type: Type.STRING },
-                      title: { type: Type.STRING },
-                      location: { type: Type.STRING },
-                      description: { type: Type.STRING },
-                      type: { type: Type.STRING }
-                    }
-                  }
-                }
-              }
-            }
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Generate a detailed day-by-day itinerary for a trip to ${trip.destination}. 
+              Trip Dates: ${trip.dateRange}. 
+              Style: ${aiOptions.style}. 
+              Budget: ${aiOptions.budget}. 
+              Interests: ${aiOptions.interests.join(', ')}.
+              Return a JSON array of days, each with a 'day' number, 'title', and an 'activities' array.
+              Each activity should have 'time', 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
+              IMPORTANT: Return ONLY the JSON array, no other text.`
+            }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
           }
-        }
+        })
       });
 
-      const generatedItinerary = JSON.parse(response.text || '[]');
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!text) {
+        throw new Error('No content received from AI');
+      }
+
+      const generatedItinerary = JSON.parse(text);
       const formattedItinerary = generatedItinerary.map((day: any) => ({
         ...day,
-        activities: day.activities.map((act: any) => ({
+        activities: (day.activities || []).map((act: any) => ({
           ...act,
           id: Math.random().toString(36).substr(2, 9)
         }))
@@ -692,7 +691,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
       setShowAiModal(false);
     } catch (error) {
       console.error('AI Generation Error:', error);
-      alert('Failed to generate itinerary. Please try again.');
+      alert('Failed to generate itinerary. Please check your API key and try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -702,32 +701,41 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Suggest 3 activities or places for ${searchQuery} in ${trip.destination}.
-        Return a JSON array of objects with 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                location: { type: Type.STRING },
-                description: { type: Type.STRING },
-                type: { type: Type.STRING }
-              }
-            }
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Suggest 3 activities or places for ${searchQuery} in ${trip.destination}.
+              Return a JSON array of objects with 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
+              IMPORTANT: Return ONLY the JSON array, no other text.`
+            }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
           }
-        }
+        })
       });
 
-      const suggestions = JSON.parse(response.text || '[]');
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        throw new Error('No content received from AI');
+      }
+
+      const suggestions = JSON.parse(text);
       setAiSuggestions(suggestions);
     } catch (error) {
       console.error('AI Search Error:', error);
+      alert('Failed to get suggestions. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -1217,9 +1225,17 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
                 <button 
                   onClick={handleAiGenerate}
-                  className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  disabled={isGenerating}
+                  className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                 >
-                  Generate Itinerary
+                  {isGenerating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    "Generate Itinerary"
+                  )}
                 </button>
               </div>
             </motion.div>
