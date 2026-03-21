@@ -68,4 +68,4 @@ export interface TripBudget {
   totalBudget: number;
 }
 
-export type Screen = 'home' | 'trips' | 'add' | 'packing' | 'profile' | 'trip-detail' | 'budget' | 'explore' | 'signin' | 'register';
+export type Screen = 'trips' | 'add' | 'packing' | 'profile' | 'trip-detail' | 'budget' | 'explore' | 'signin' | 'register';

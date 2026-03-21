@@ -50,7 +50,6 @@ import { supabase } from './supabase';
 
 const BottomNav = ({ activeTab, onTabChange }: { activeTab: Screen, onTabChange: (tab: Screen) => void }) => {
   const tabs: { id: Screen; icon: any; label: string }[] = [
-    { id: 'home', icon: Home, label: 'Home' },
     { id: 'trips', icon: MapIcon, label: 'Trips' },
     { id: 'add', icon: Plus, label: 'Add' },
     { id: 'budget', icon: Wallet, label: 'Budget' },
@@ -356,175 +355,7 @@ const getDaysUntil = (dateRange: string) => {
   }
 };
 
-const HomeScreen = ({ trips, onSelectTrip, onNavigate, userName }: { trips: Trip[], onSelectTrip: (trip: Trip) => void, onNavigate: (screen: Screen) => void, userName: string }) => {
-  const [isLoading, setIsLoading] = React.useState(true);
-  const ongoingTrip = trips.find(t => t.status === 'ongoing');
-  const upcomingTrip = trips.find(t => t.status === 'upcoming');
-  const daysUntil = upcomingTrip ? getDaysUntil(upcomingTrip.dateRange) : 0;
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-8 pb-24 animate-pulse">
-        <header className="flex justify-between items-center py-4">
-          <div className="space-y-2">
-            <div className="h-8 w-32 bg-slate-200 rounded-lg" />
-            <div className="h-4 w-48 bg-slate-200 rounded-lg" />
-          </div>
-          <div className="w-12 h-12 rounded-full bg-slate-200" />
-        </header>
-        <div className="h-32 bg-slate-200 rounded-3xl w-full" />
-        <div className="h-64 bg-slate-200 rounded-3xl w-full" />
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-24 bg-slate-200 rounded-3xl" />
-          <div className="h-24 bg-slate-200 rounded-3xl" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.02 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="space-y-8 pb-24"
-    >
-      {/* Header */}
-      <header className="flex justify-between items-center bg-gradient-to-r from-mountain-primary/10 to-transparent -mx-6 px-6 py-4 rounded-b-[40px]">
-        <div>
-          <h1 className="text-3xl font-black font-headline tracking-tighter text-mountain-primary">TripSuite</h1>
-          <p className="text-slate-500 font-medium font-body">Welcome back, {userName}</p>
-        </div>
-        <div className="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm hover:scale-110 transition-transform cursor-pointer">
-          <img src="https://picsum.photos/seed/traveler/100/100" alt="Profile" referrerPolicy="no-referrer" />
-        </div>
-      </header>
-
-      {/* Countdown Widget */}
-      {upcomingTrip && daysUntil > 0 && (
-        <motion.section 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="bg-mountain-primary text-white rounded-3xl p-6 shadow-lg shadow-mountain-primary/20 relative overflow-hidden"
-        >
-          <div className="absolute -right-4 -bottom-4 opacity-20">
-            <Calendar size={120} />
-          </div>
-          <div className="relative z-10">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Next Adventure</div>
-            <div className="text-2xl font-black font-headline mb-1">{upcomingTrip.name}</div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black font-headline">{daysUntil}</span>
-              <span className="text-sm font-bold opacity-80">days to go</span>
-            </div>
-          </div>
-        </motion.section>
-      )}
-
-      {/* Weather Widget */}
-      <section className="bg-surface-container-lowest rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-sm">
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 opacity-10">
-          <Sun size={120} className="text-mountain-primary" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-mountain-primary font-bold uppercase tracking-widest text-xs mb-1">
-            <Cloud size={14} />
-            Ooty, India
-          </div>
-          <div className="text-4xl font-black font-headline">24°C</div>
-          <p className="text-slate-500 text-sm font-medium">Partly cloudy • High 26°</p>
-        </div>
-        <div className="text-right relative z-10">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Forecast</div>
-          <div className="flex gap-3">
-            {[
-              { day: 'Mon', temp: 24 },
-              { day: 'Tue', temp: 22 },
-              { day: 'Wed', temp: 26 }
-            ].map(item => (
-              <div key={item.day} className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-slate-500">{item.day}</span>
-                <Sun size={16} className="text-amber-500 my-1" />
-                <span className="text-xs font-bold">{item.temp}°</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Ongoing Trip */}
-      {ongoingTrip && (
-        <section className="space-y-4">
-          <div className="flex justify-between items-end">
-            <h2 className="text-xl font-bold font-headline">Ongoing Trip</h2>
-            <button 
-              onClick={() => onNavigate('trips')}
-              className="text-xs font-bold text-mountain-primary uppercase tracking-widest"
-            >
-              View All
-            </button>
-          </div>
-          <div 
-            onClick={() => onSelectTrip(ongoingTrip)}
-            className="relative h-64 rounded-3xl overflow-hidden shadow-xl cursor-pointer group"
-          >
-            <img 
-              src={ongoingTrip.image} 
-              alt={ongoingTrip.name} 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <TripBadge status="ongoing" />
-              <h3 className="text-2xl font-black font-headline mt-2">{ongoingTrip.name}</h3>
-              <div className="flex items-center gap-4 mt-1 text-white/80 text-sm font-medium">
-                <span className="flex items-center gap-1"><Calendar size={14} /> {ongoingTrip.dateRange}</span>
-                <span className="flex items-center gap-1"><Users size={14} /> {ongoingTrip.guests} Guests</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Quick Actions */}
-      <section className="grid grid-cols-2 gap-4">
-        <button 
-          onClick={() => onNavigate('add')}
-          className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-all hover:scale-105 active:scale-95"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-mountain-primary/10 text-mountain-primary flex items-center justify-center">
-            <Plus size={20} />
-          </div>
-          <div className="text-left">
-            <div className="font-bold text-sm">New Trip</div>
-            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Start Planning</div>
-          </div>
-        </button>
-        <button 
-          onClick={() => onNavigate('explore')}
-          className="glass p-5 rounded-3xl flex flex-col items-start gap-3 hover:bg-white/60 transition-all hover:scale-105 active:scale-95"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
-            <Search size={20} />
-          </div>
-          <div className="text-left">
-            <div className="font-bold text-sm">Explore</div>
-            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Find Destinations</div>
-          </div>
-        </button>
-      </section>
-    </motion.div>
-  );
-};
-
-const TripsListScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (trip: Trip) => void }) => {
+const TripsListScreen = ({ trips, onSelectTrip, userName }: { trips: Trip[], onSelectTrip: (trip: Trip) => void, userName: string }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
 
@@ -542,10 +373,27 @@ const TripsListScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip:
       transition={{ duration: 0.3 }}
       className="space-y-6 pb-24"
     >
-      <header className="bg-gradient-to-br from-mountain-primary to-emerald-800 -mx-6 px-6 py-10 rounded-b-[40px] text-white shadow-xl">
-        <h1 className="text-4xl font-black font-headline tracking-tight">My Trips</h1>
-        <p className="text-white/70 font-medium">Your world adventures, all in one place.</p>
+      {/* Compact Welcome Header */}
+      <header className="flex justify-between items-center bg-gradient-to-r from-mountain-primary/10 to-transparent -mx-6 px-6 py-4 rounded-b-[40px] mb-2">
+        <div>
+          <h1 className="text-2xl font-black font-headline tracking-tighter text-mountain-primary leading-tight">TripSuite</h1>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest font-body">Welcome back, {userName}</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl shadow-sm border border-white/50">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+            <Sun size={18} />
+          </div>
+          <div className="text-left">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 leading-none mb-0.5">Ooty, IN</div>
+            <div className="text-xs font-black text-slate-900 leading-none">24°C • Sunny</div>
+          </div>
+        </div>
       </header>
+
+      <div className="px-1">
+        <h2 className="text-3xl font-black font-headline tracking-tight text-slate-900">My Trips</h2>
+        <p className="text-slate-500 text-sm font-medium">Your world adventures, all in one place.</p>
+      </div>
 
       {/* Search & Filter */}
       <div className="space-y-4">
@@ -1500,7 +1348,7 @@ export default function App() {
       if (session) {
         setIsLoggedIn(true);
         setUserName(session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Traveler');
-        setCurrentScreen('home');
+        setCurrentScreen('trips');
       }
     });
 
@@ -1510,7 +1358,7 @@ export default function App() {
       if (session) {
         setIsLoggedIn(true);
         setUserName(session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Traveler');
-        setCurrentScreen('home');
+        setCurrentScreen('trips');
       } else {
         setIsLoggedIn(false);
         setUserName('');
@@ -1616,10 +1464,8 @@ export default function App() {
 
   const renderScreen = () => {
     switch (currentScreen) {
-      case 'home':
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
       case 'trips':
-        return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} />;
+        return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
       case 'add':
         return <CreateTripScreen onCreate={handleCreateTrip} />;
       case 'budget':
@@ -1637,9 +1483,9 @@ export default function App() {
       case 'trip-detail':
         return selectedTrip ? (
           <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} expenses={expenses} />
-        ) : <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
+        ) : <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
       default:
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
+        return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
     }
   };
 
