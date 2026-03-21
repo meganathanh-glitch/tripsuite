@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { 
@@ -626,6 +626,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const [activeDay, setActiveDay] = useState(1);
   const [activeTab, setActiveTab] = useState('Itinerary');
   const [showAiModal, setShowAiModal] = useState(false);
+  console.log('TripDetailScreen render - showAiModal:', showAiModal);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiOptions, setAiOptions] = useState({
     style: 'Adventure',
@@ -638,9 +639,20 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  useEffect(() => {
+    console.log('TripDetailScreen mounted for trip:', trip.name);
+    window.alert('TripDetailScreen mounted for ' + trip.name);
+    const handleClick = (e: MouseEvent) => {
+      console.log('Global click detected in TripDetailScreen:', e.target);
+    };
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [trip.name]);
+
   const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
 
   const handleAiGenerate = async () => {
+    window.alert('handleAiGenerate function entered');
     console.log('Starting AI Itinerary Generation...');
     console.log('Trip Details:', { destination: trip.destination, dateRange: trip.dateRange });
     console.log('AI Options:', aiOptions);
@@ -713,6 +725,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   };
 
   const handleAiSearch = async (day: number) => {
+    window.alert('handleAiSearch function entered for day ' + day);
     if (!searchQuery.trim()) return;
     console.log(`Starting AI Search for Day ${day}...`);
     console.log('Search Query:', searchQuery);
@@ -838,7 +851,11 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
             {/* AI Generate Button */}
             {!trip.isLocked && (
               <button 
-                onClick={() => setShowAiModal(true)}
+                onClick={() => {
+                  console.log('Opening AI Planner Modal');
+                  window.alert('Opening AI Planner Modal');
+                  setShowAiModal(true);
+                }}
                 className="w-full bg-gradient-to-r from-mountain-primary to-emerald-600 text-white p-4 rounded-3xl font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-mountain-primary/20 hover:scale-[1.02] transition-transform"
               >
                 <Sparkles size={20} />
@@ -871,12 +888,23 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch(activeDay)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      console.log('Search Enter pressed');
+                      window.alert('Search Enter pressed');
+                      handleAiSearch(activeDay);
+                    }
+                  }}
                   placeholder={`Search suggestions for Day ${activeDay}...`}
                   className="w-full bg-white p-4 pr-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
                 />
                 <button 
-                  onClick={() => handleAiSearch(activeDay)}
+                  type="button"
+                  onClick={() => {
+                    console.log('Search button clicked');
+                    window.alert('Search button clicked');
+                    handleAiSearch(activeDay);
+                  }}
                   disabled={isSearching}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-mountain-primary"
                 >
@@ -1084,7 +1112,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
       transition={{ duration: 0.3 }}
-      className="pb-24"
+      className="pb-24 relative z-0"
     >
       {/* Hero Header */}
       <div className="relative h-80 -mx-6 -mt-12 overflow-hidden">
@@ -1165,19 +1193,22 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
       {/* AI Generate Modal */}
       <AnimatePresence>
         {showAiModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => !isGenerating && setShowAiModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              onClick={() => {
+                console.log('Modal backdrop clicked');
+                if (!isGenerating) setShowAiModal(false);
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md z-0"
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-8 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-8 shadow-2xl overflow-hidden z-10 pointer-events-auto"
             >
               {isGenerating && (
                 <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 space-y-4">
@@ -1197,7 +1228,16 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Powered by Gemini</p>
                   </div>
                 </div>
-                <button onClick={() => setShowAiModal(false)} className="text-slate-300"><X size={24} /></button>
+                <button 
+                  onClick={() => {
+                    console.log('Modal close button clicked');
+                    window.alert('Modal close button clicked');
+                    setShowAiModal(false);
+                  }} 
+                  className="text-slate-300 p-2"
+                >
+                  <X size={24} />
+                </button>
               </div>
 
               <div className="space-y-6">
@@ -1252,8 +1292,14 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
                 </div>
 
                 <button 
-                  onClick={handleAiGenerate}
+                  type="button"
+                  onClick={() => {
+                    console.log('Generate Itinerary button clicked - calling handleAiGenerate');
+                    window.alert('Generate Itinerary button clicked - calling handleAiGenerate');
+                    handleAiGenerate();
+                  }}
                   disabled={isGenerating}
+                  style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
                   className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                 >
                   {isGenerating ? (
@@ -1811,6 +1857,7 @@ const ProfileScreen = ({ trips, userName, onLogout }: { trips: Trip[], userName:
 // --- Main App ---
 
 export default function App() {
+  console.log('App component rendering');
   const [session, setSession] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
@@ -1870,7 +1917,7 @@ export default function App() {
   }, [expenses]);
 
   const handleSignIn = async (email: string, password: string) => {
-    console.log('Attempting sign in for:', email);
+    console.log('handleSignIn called for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error('Sign in error:', error.message);
@@ -1904,16 +1951,19 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    console.log('handleLogout called');
     const { error } = await supabase.auth.signOut();
     if (error) alert(error.message);
   };
 
   const handleSelectTrip = (trip: Trip) => {
+    console.log('Selecting trip:', trip.name);
     setSelectedTrip(trip);
     setCurrentScreen('trip-detail');
   };
 
   const handleCreateTrip = (newTrip: Partial<Trip>) => {
+    console.log('handleCreateTrip called for:', newTrip.name);
     const trip: Trip = {
       id: Math.random().toString(36).substr(2, 9),
       name: newTrip.name || 'New Trip',
@@ -1932,15 +1982,18 @@ export default function App() {
   };
 
   const handleUpdateTrip = (updatedTrip: Trip) => {
+    console.log('Updating trip:', updatedTrip.name);
     setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
     setSelectedTrip(updatedTrip);
   };
 
   const handleTogglePacking = (id: string) => {
+    console.log('handleTogglePacking called for:', id);
     setPackingItems(prev => prev.map(item => item.id === id ? { ...item, packed: !item.packed } : item));
   };
 
   const handleAddPackingItem = (category: string, name: string, tripId: string) => {
+    console.log('handleAddPackingItem called for:', name);
     const newItem: PackingItem = {
       id: Math.random().toString(36).substr(2, 9),
       category,
@@ -1952,6 +2005,7 @@ export default function App() {
   };
 
   const handleAddExpense = (newExpense: Partial<Expense>) => {
+    console.log('handleAddExpense called for:', newExpense.description);
     const expense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       tripId: newExpense.tripId || '',
@@ -1964,6 +2018,7 @@ export default function App() {
   };
 
   const renderScreen = () => {
+    console.log('Rendering screen:', currentScreen);
     switch (currentScreen) {
       case 'trips':
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
