@@ -38,7 +38,9 @@ import {
   ArrowDownRight,
   Plane,
   Hotel,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { MOCK_TRIPS, MOCK_PACKING_LIST } from './constants';
 import { Trip, Screen, PackingItem, Expense } from './types';
@@ -98,6 +100,210 @@ const TripBadge = ({ status }: { status: Trip['status'] }) => {
 };
 
 // --- Screens ---
+
+const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (name: string) => void, onNavigateToRegister: () => void }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simulate sign in
+    onSignIn(email.split('@')[0]); // Use part of email as name for demo
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="min-h-screen flex flex-col justify-center py-12 px-6"
+    >
+      <div className="text-center mb-12">
+        <div className="w-20 h-20 bg-mountain-primary rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-mountain-primary/20">
+          <Globe size={40} className="text-white" />
+        </div>
+        <h1 className="text-4xl font-black font-headline tracking-tight text-slate-900">TripSuite</h1>
+        <p className="text-slate-500 font-medium mt-2">Your ultimate travel companion.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="hello@example.com"
+            className="w-full bg-white p-4 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-white p-4 pr-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button type="button" className="text-[10px] font-black uppercase tracking-widest text-mountain-primary hover:underline">
+            Forgot Password?
+          </button>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
+        >
+          Sign In
+        </button>
+
+        <div className="relative py-4">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+          <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest"><span className="bg-surface-container-low px-4 text-slate-400">Or continue with</span></div>
+        </div>
+
+        <button
+          type="button"
+          className="w-full bg-white text-slate-900 p-5 rounded-3xl font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors"
+        >
+          <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+          Continue with Google
+        </button>
+      </form>
+
+      <p className="text-center mt-8 text-sm font-medium text-slate-500">
+        Don't have an account?{' '}
+        <button onClick={onNavigateToRegister} className="text-mountain-primary font-black hover:underline">
+          Register
+        </button>
+      </p>
+    </motion.div>
+  );
+};
+
+const RegisterScreen = ({ onRegister, onNavigateToSignIn }: { onRegister: (name: string) => void, onNavigateToSignIn: () => void }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      alert("Passwords don't match!");
+      return;
+    }
+    onRegister(name);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="min-h-screen flex flex-col justify-center py-12 px-6"
+    >
+      <div className="text-center mb-12">
+        <div className="w-20 h-20 bg-mountain-primary rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-mountain-primary/20">
+          <Globe size={40} className="text-white" />
+        </div>
+        <h1 className="text-4xl font-black font-headline tracking-tight text-slate-900">Create Account</h1>
+        <p className="text-slate-500 font-medium mt-2">Start your journey with TripSuite.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="John Doe"
+            className="w-full bg-white p-4 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="hello@example.com"
+            className="w-full bg-white p-4 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-white p-4 pr-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Confirm Password</label>
+          <input
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full bg-white p-4 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20 border-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
+        >
+          Create Account
+        </button>
+      </form>
+
+      <p className="text-center mt-8 text-sm font-medium text-slate-500">
+        Already have an account?{' '}
+        <button onClick={onNavigateToSignIn} className="text-mountain-primary font-black hover:underline">
+          Sign In
+        </button>
+      </p>
+    </motion.div>
+  );
+};
 
 const getDaysUntil = (dateRange: string) => {
   if (!dateRange || typeof dateRange !== 'string') return 0;
@@ -1141,7 +1347,7 @@ const ExploreScreen = () => {
   );
 };
 
-const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
+const ProfileScreen = ({ trips, userName, onLogout }: { trips: Trip[], userName: string, onLogout: () => void }) => {
   const totalPhotos = trips.reduce((sum, trip) => sum + (trip.photos?.length || 0), 0);
   const countries = new Set(trips.map(t => t.destination?.split(',').pop()?.trim()).filter(Boolean)).size;
 
@@ -1168,7 +1374,7 @@ const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
           </div>
         </div>
         <div>
-          <h1 className="text-3xl font-black font-headline tracking-tighter">Meganathan</h1>
+          <h1 className="text-3xl font-black font-headline tracking-tighter">{userName}</h1>
           <p className="text-slate-500 font-medium">Gold Explorer • Since 2022</p>
         </div>
       </header>
@@ -1215,7 +1421,10 @@ const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
 
       {/* Bottom Actions */}
       <section className="space-y-3 pt-4">
-        <button className="w-full bg-rose-50 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:bg-rose-100 transition-colors text-rose-600">
+        <button 
+          onClick={onLogout}
+          className="w-full bg-rose-50 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:bg-rose-100 transition-colors text-rose-600"
+        >
           <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
             <LogOut size={20} />
           </div>
@@ -1229,7 +1438,15 @@ const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
 // --- Main App ---
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isLoggedIn') === 'true';
+  });
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('userName') || '';
+  });
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
+    return localStorage.getItem('isLoggedIn') === 'true' ? 'home' : 'signin';
+  });
   const [trips, setTrips] = useState<Trip[]>(() => {
     const saved = localStorage.getItem('trips');
     return saved ? JSON.parse(saved) : MOCK_TRIPS;
@@ -1255,6 +1472,29 @@ export default function App() {
   React.useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
   }, [expenses]);
+
+  React.useEffect(() => {
+    localStorage.setItem('isLoggedIn', isLoggedIn.toString());
+    localStorage.setItem('userName', userName);
+  }, [isLoggedIn, userName]);
+
+  const handleSignIn = (name: string) => {
+    setUserName(name);
+    setIsLoggedIn(true);
+    setCurrentScreen('home');
+  };
+
+  const handleRegister = (name: string) => {
+    setUserName(name);
+    setIsLoggedIn(true);
+    setCurrentScreen('home');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserName('');
+    setCurrentScreen('signin');
+  };
 
   const handleSelectTrip = (trip: Trip) => {
     setSelectedTrip(trip);
@@ -1319,9 +1559,13 @@ export default function App() {
       case 'packing':
         return <PackingListScreen items={packingItems} onToggle={handleTogglePacking} onAddItem={handleAddPackingItem} trips={trips} />;
       case 'profile':
-        return <ProfileScreen trips={trips} />;
+        return <ProfileScreen trips={trips} userName={userName} onLogout={handleLogout} />;
       case 'explore':
         return <ExploreScreen />;
+      case 'signin':
+        return <SignInScreen onSignIn={handleSignIn} onNavigateToRegister={() => setCurrentScreen('register')} />;
+      case 'register':
+        return <RegisterScreen onRegister={handleRegister} onNavigateToSignIn={() => setCurrentScreen('signin')} />;
       case 'trip-detail':
         return selectedTrip ? (
           <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} expenses={expenses} />
@@ -1339,7 +1583,7 @@ export default function App() {
         </AnimatePresence>
       </main>
       
-      {currentScreen !== 'trip-detail' && (
+      {currentScreen !== 'trip-detail' && currentScreen !== 'signin' && currentScreen !== 'register' && (
         <BottomNav 
           activeTab={currentScreen} 
           onTabChange={(tab) => {
