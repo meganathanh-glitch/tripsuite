@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap');
+
+@theme {
+  --font-headline: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+  
+  --color-surface: #f6fafe;
+  --color-on-surface: #171c1f;
+  --color-mountain-primary: #065F46;
+  --color-surface-container: #eaeef2;
+  --color-surface-container-low: #f0f4f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-highest: #dfe3e7;
+  --color-outline-variant: #bcc9c6;
+  --color-on-surface-variant: #3d4947;
+}
+
+@layer base {
+  body {
+    @apply bg-surface font-body text-on-surface antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+@layer utilities {
+  .mountain-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 L25 50 L50 100 L75 20 L100 100' fill='none' stroke='%23065F46' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+  }
+  
+  .glass {
+    @apply bg-white/70 backdrop-blur-md shadow-sm;
+  }
+
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-xl shadow-lg;
+  }
+}
