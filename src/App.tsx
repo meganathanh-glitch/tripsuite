@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { MOCK_TRIPS, MOCK_PACKING_LIST } from './constants';
 import { Trip, Screen, PackingItem, Expense } from './types';
+import { supabase } from './supabase';
 
 // --- Components ---
 
@@ -101,15 +102,38 @@ const TripBadge = ({ status }: { status: Trip['status'] }) => {
 
 // --- Screens ---
 
-const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (name: string) => void, onNavigateToRegister: () => void }) => {
+const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (email: string, password: string) => Promise<void>, onNavigateToRegister: () => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate sign in
-    onSignIn(email.split('@')[0]); // Use part of email as name for demo
+    setLoading(true);
+    try {
+      await onSignIn(email, password);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Please enter your email address first.");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Password reset email sent! Check your inbox.");
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    alert("Google Sign-In coming soon! Please use email/password for now.");
+    // supabase.auth.signInWithOAuth({ provider: 'google' });
   };
 
   return (
@@ -162,16 +186,21 @@ const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (name: str
         </div>
 
         <div className="flex justify-end">
-          <button type="button" className="text-[10px] font-black uppercase tracking-widest text-mountain-primary hover:underline">
+          <button 
+            type="button" 
+            onClick={handleForgotPassword}
+            className="text-[10px] font-black uppercase tracking-widest text-mountain-primary hover:underline"
+          >
             Forgot Password?
           </button>
         </div>
 
         <button
           type="submit"
-          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
+          disabled={loading}
+          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 disabled:opacity-50 disabled:scale-100"
         >
-          Sign In
+          {loading ? 'Signing In...' : 'Sign In'}
         </button>
 
         <div className="relative py-4">
@@ -181,6 +210,7 @@ const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (name: str
 
         <button
           type="button"
+          onClick={handleGoogleSignIn}
           className="w-full bg-white text-slate-900 p-5 rounded-3xl font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors"
         >
           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
@@ -198,20 +228,26 @@ const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (name: str
   );
 };
 
-const RegisterScreen = ({ onRegister, onNavigateToSignIn }: { onRegister: (name: string) => void, onNavigateToSignIn: () => void }) => {
+const RegisterScreen = ({ onRegister, onNavigateToSignIn }: { onRegister: (name: string, email: string, password: string) => Promise<void>, onNavigateToSignIn: () => void }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
-    onRegister(name);
+    setLoading(true);
+    try {
+      await onRegister(name, email, password);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -289,9 +325,10 @@ const RegisterScreen = ({ onRegister, onNavigateToSignIn }: { onRegister: (name:
 
         <button
           type="submit"
-          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
+          disabled={loading}
+          className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 disabled:opacity-50 disabled:scale-100"
         >
-          Create Account
+          {loading ? 'Creating Account...' : 'Create Account'}
         </button>
       </form>
 
@@ -319,7 +356,7 @@ const getDaysUntil = (dateRange: string) => {
   }
 };
 
-const HomeScreen = ({ trips, onSelectTrip, onNavigate }: { trips: Trip[], onSelectTrip: (trip: Trip) => void, onNavigate: (screen: Screen) => void }) => {
+const HomeScreen = ({ trips, onSelectTrip, onNavigate, userName }: { trips: Trip[], onSelectTrip: (trip: Trip) => void, onNavigate: (screen: Screen) => void, userName: string }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const ongoingTrip = trips.find(t => t.status === 'ongoing');
   const upcomingTrip = trips.find(t => t.status === 'upcoming');
@@ -362,7 +399,7 @@ const HomeScreen = ({ trips, onSelectTrip, onNavigate }: { trips: Trip[], onSele
       <header className="flex justify-between items-center bg-gradient-to-r from-mountain-primary/10 to-transparent -mx-6 px-6 py-4 rounded-b-[40px]">
         <div>
           <h1 className="text-3xl font-black font-headline tracking-tighter text-mountain-primary">TripSuite</h1>
-          <p className="text-slate-500 font-medium font-body">Welcome back, Meganathan</p>
+          <p className="text-slate-500 font-medium font-body">Welcome back, {userName}</p>
         </div>
         <div className="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm hover:scale-110 transition-transform cursor-pointer">
           <img src="https://picsum.photos/seed/traveler/100/100" alt="Profile" referrerPolicy="no-referrer" />
@@ -1438,15 +1475,10 @@ const ProfileScreen = ({ trips, userName, onLogout }: { trips: Trip[], userName:
 // --- Main App ---
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
-  const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('userName') || '';
-  });
-  const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
-    return localStorage.getItem('isLoggedIn') === 'true' ? 'home' : 'signin';
-  });
+  const [session, setSession] = useState<any>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('signin');
   const [trips, setTrips] = useState<Trip[]>(() => {
     const saved = localStorage.getItem('trips');
     return saved ? JSON.parse(saved) : MOCK_TRIPS;
@@ -1462,6 +1494,34 @@ export default function App() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
   React.useEffect(() => {
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        setIsLoggedIn(true);
+        setUserName(session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Traveler');
+        setCurrentScreen('home');
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        setIsLoggedIn(true);
+        setUserName(session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Traveler');
+        setCurrentScreen('home');
+      } else {
+        setIsLoggedIn(false);
+        setUserName('');
+        setCurrentScreen('signin');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  React.useEffect(() => {
     localStorage.setItem('trips', JSON.stringify(trips));
   }, [trips]);
 
@@ -1473,27 +1533,35 @@ export default function App() {
     localStorage.setItem('expenses', JSON.stringify(expenses));
   }, [expenses]);
 
-  React.useEffect(() => {
-    localStorage.setItem('isLoggedIn', isLoggedIn.toString());
-    localStorage.setItem('userName', userName);
-  }, [isLoggedIn, userName]);
-
-  const handleSignIn = (name: string) => {
-    setUserName(name);
-    setIsLoggedIn(true);
-    setCurrentScreen('home');
+  const handleSignIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      alert(error.message);
+      throw error;
+    }
   };
 
-  const handleRegister = (name: string) => {
-    setUserName(name);
-    setIsLoggedIn(true);
-    setCurrentScreen('home');
+  const handleRegister = async (name: string, email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: {
+          full_name: name
+        }
+      }
+    });
+    if (error) {
+      alert(error.message);
+      throw error;
+    } else {
+      alert("Registration successful! Please check your email for verification if required.");
+    }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserName('');
-    setCurrentScreen('signin');
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) alert(error.message);
   };
 
   const handleSelectTrip = (trip: Trip) => {
@@ -1549,7 +1617,7 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
+        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
       case 'trips':
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} />;
       case 'add':
@@ -1569,9 +1637,9 @@ export default function App() {
       case 'trip-detail':
         return selectedTrip ? (
           <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} expenses={expenses} />
-        ) : <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
+        ) : <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
       default:
-        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} />;
+        return <HomeScreen trips={trips} onSelectTrip={handleSelectTrip} onNavigate={setCurrentScreen} userName={userName} />;
     }
   };
 
