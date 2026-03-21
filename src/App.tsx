@@ -30,10 +30,15 @@ import {
   Award,
   Globe,
   LogOut,
-  X
+  X,
+  Wallet,
+  Filter,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { MOCK_TRIPS, MOCK_PACKING_LIST } from './constants';
-import { Trip, Screen, PackingItem } from './types';
+import { Trip, Screen, PackingItem, Expense } from './types';
 
 // --- Components ---
 
@@ -42,28 +47,30 @@ const BottomNav = ({ activeTab, onTabChange }: { activeTab: Screen, onTabChange:
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'trips', icon: MapIcon, label: 'Trips' },
     { id: 'add', icon: Plus, label: 'Add' },
+    { id: 'budget', icon: Wallet, label: 'Budget' },
     { id: 'packing', icon: Briefcase, label: 'Packing' },
     { id: 'profile', icon: User, label: 'Profile' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass px-6 py-3 flex justify-between items-center z-50 rounded-t-3xl">
+    <nav className="fixed bottom-0 left-0 right-0 glass px-4 py-3 flex justify-between items-center z-50 rounded-t-3xl">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id || (activeTab === 'trip-detail' && tab.id === 'trips');
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex flex-col items-center gap-1 transition-all duration-300 ${
+            className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${
               isActive ? 'text-mountain-primary scale-110' : 'text-slate-400'
             }`}
           >
-            <tab.icon size={isActive ? 24 : 20} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
+            <tab.icon size={isActive ? 22 : 20} strokeWidth={isActive ? 2.5 : 2} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">{tab.label}</span>
             {isActive && (
               <motion.div
-                layoutId="activeTab"
-                className="w-1 h-1 bg-mountain-primary rounded-full mt-0.5"
+                layoutId="activeTabIndicator"
+                className="absolute -top-1 w-8 h-1 bg-mountain-primary rounded-full"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}
           </button>
@@ -89,27 +96,89 @@ const TripBadge = ({ status }: { status: Trip['status'] }) => {
 
 // --- Screens ---
 
+const getDaysUntil = (dateRange: string) => {
+  try {
+    const startDateStr = dateRange.split(' — ')[0];
+    const startDate = new Date(startDateStr);
+    const today = new Date();
+    const diffTime = startDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  } catch (e) {
+    return 0;
+  }
+};
+
 const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (trip: Trip) => void }) => {
+  const [isLoading, setIsLoading] = React.useState(true);
   const ongoingTrip = trips.find(t => t.status === 'ongoing');
+  const upcomingTrip = trips.find(t => t.status === 'upcoming');
+  const daysUntil = upcomingTrip ? getDaysUntil(upcomingTrip.dateRange) : 0;
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 pb-24 animate-pulse">
+        <header className="flex justify-between items-center py-4">
+          <div className="space-y-2">
+            <div className="h-8 w-32 bg-slate-200 rounded-lg" />
+            <div className="h-4 w-48 bg-slate-200 rounded-lg" />
+          </div>
+          <div className="w-12 h-12 rounded-full bg-slate-200" />
+        </header>
+        <div className="h-32 bg-slate-200 rounded-3xl w-full" />
+        <div className="h-64 bg-slate-200 rounded-3xl w-full" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-24 bg-slate-200 rounded-3xl" />
+          <div className="h-24 bg-slate-200 rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.02 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className="space-y-8 pb-24"
     >
       {/* Header */}
-      <header className="flex justify-between items-center">
+      <header className="flex justify-between items-center bg-gradient-to-r from-mountain-primary/10 to-transparent -mx-6 px-6 py-4 rounded-b-[40px]">
         <div>
           <h1 className="text-3xl font-black font-headline tracking-tighter text-mountain-primary">TripSuite</h1>
           <p className="text-slate-500 font-medium font-body">Welcome back, Meganathan</p>
         </div>
-        <div className="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden">
+        <div className="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm hover:scale-110 transition-transform cursor-pointer">
           <img src="https://picsum.photos/seed/traveler/100/100" alt="Profile" referrerPolicy="no-referrer" />
         </div>
       </header>
+
+      {/* Countdown Widget */}
+      {upcomingTrip && daysUntil > 0 && (
+        <motion.section 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-mountain-primary text-white rounded-3xl p-6 shadow-lg shadow-mountain-primary/20 relative overflow-hidden"
+        >
+          <div className="absolute -right-4 -bottom-4 opacity-20">
+            <Calendar size={120} />
+          </div>
+          <div className="relative z-10">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Next Adventure</div>
+            <div className="text-2xl font-black font-headline mb-1">{upcomingTrip.name}</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black font-headline">{daysUntil}</span>
+              <span className="text-sm font-bold opacity-80">days to go</span>
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* Weather Widget */}
       <section className="bg-surface-container-lowest rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-sm">
@@ -194,25 +263,66 @@ const HomeScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (tri
 };
 
 const TripsListScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip: (trip: Trip) => void }) => {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
+
+  const filteredTrips = trips.filter(trip => {
+    const matchesSearch = trip.name.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === 'all' || trip.status === filter;
+    return matchesSearch && matchesFilter;
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-8 pb-24"
+      className="space-y-6 pb-24"
     >
-      <header>
+      <header className="bg-gradient-to-br from-mountain-primary to-emerald-800 -mx-6 px-6 py-10 rounded-b-[40px] text-white shadow-xl">
         <h1 className="text-4xl font-black font-headline tracking-tight">My Trips</h1>
-        <p className="text-slate-500 font-medium">Your world adventures, all in one place.</p>
+        <p className="text-white/70 font-medium">Your world adventures, all in one place.</p>
       </header>
 
+      {/* Search & Filter */}
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text"
+            placeholder="Search trips..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-white p-4 pl-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+          />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {['all', 'upcoming', 'ongoing', 'completed'].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f as any)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                filter === f 
+                  ? 'bg-mountain-primary text-white shadow-md' 
+                  : 'bg-white text-slate-400'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-6">
-        {trips.map((trip) => (
-          <div 
+        {filteredTrips.length > 0 ? filteredTrips.map((trip) => (
+          <motion.div 
+            layout
             key={trip.id}
             onClick={() => onSelectTrip(trip)}
-            className="bg-surface-container-lowest rounded-3xl overflow-hidden flex h-32 cursor-pointer hover:shadow-md transition-shadow"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-surface-container-lowest rounded-3xl overflow-hidden flex h-32 cursor-pointer shadow-sm hover:shadow-md transition-all"
           >
             <div className="w-32 h-full relative">
               <img 
@@ -233,8 +343,10 @@ const TripsListScreen = ({ trips, onSelectTrip }: { trips: Trip[], onSelectTrip:
                 <ChevronRight size={16} className="text-slate-300" />
               </div>
             </div>
-          </div>
-        ))}
+          </motion.div>
+        )) : (
+          <div className="text-center py-12 text-slate-400 italic font-medium">No trips found matching your search.</div>
+        )}
       </div>
     </motion.div>
   );
@@ -361,6 +473,7 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
 
 const TripDetailScreen = ({ trip, onBack }: { trip: Trip, onBack: () => void }) => {
   const [activeDay, setActiveDay] = useState(1);
+  const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
 
   return (
     <motion.div
@@ -381,12 +494,19 @@ const TripDetailScreen = ({ trip, onBack }: { trip: Trip, onBack: () => void }) 
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-surface-container-low" />
         <button 
           onClick={onBack}
-          className="absolute top-16 left-6 w-10 h-10 rounded-full glass flex items-center justify-center text-white"
+          className="absolute top-16 left-6 w-10 h-10 rounded-full glass flex items-center justify-center text-white z-20"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <TripBadge status={trip.status} />
+          <div className="flex items-center gap-2 mb-2">
+            <TripBadge status={trip.status} />
+            {daysUntil > 0 && (
+              <span className="bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+                {daysUntil} days left
+              </span>
+            )}
+          </div>
           <h1 className="text-4xl font-black font-headline mt-2 text-on-surface">{trip.name}</h1>
           <p className="text-slate-500 font-medium">{trip.dateRange} • {trip.guests} Guests</p>
         </div>
@@ -579,6 +699,211 @@ const PackingListScreen = ({ items, onToggle, onAddItem }: { items: PackingItem[
   );
 };
 
+const BudgetScreen = ({ trips, expenses, onAddExpense }: { trips: Trip[], expenses: Expense[], onAddExpense: (expense: Partial<Expense>) => void }) => {
+  const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id || '');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    category: 'Food' as Expense['category'],
+    description: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  const tripExpenses = expenses.filter(e => e.tripId === selectedTripId);
+  const totalSpent = tripExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalBudget = 5000; // Mock budget for now
+  const remaining = totalBudget - totalSpent;
+  const progress = Math.min((totalSpent / totalBudget) * 100, 100);
+
+  const categoryIcons = {
+    Food: Utensils,
+    Transport: Car,
+    Stay: Bed,
+    Activities: Camera,
+    Shopping: Briefcase
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddExpense({
+      tripId: selectedTripId,
+      amount: parseFloat(formData.amount),
+      category: formData.category,
+      description: formData.description,
+      date: formData.date
+    });
+    setFormData({ amount: '', category: 'Food', description: '', date: new Date().toISOString().split('T')[0] });
+    setShowAddForm(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-8 pb-24"
+    >
+      <header className="bg-gradient-to-br from-mountain-primary to-emerald-900 -mx-6 px-6 py-10 rounded-b-[40px] text-white shadow-xl">
+        <h1 className="text-4xl font-black font-headline tracking-tight">Budget</h1>
+        <p className="text-white/70 font-medium">Track your spending on the go.</p>
+      </header>
+
+      {/* Trip Selector */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {trips.map(trip => (
+          <button
+            key={trip.id}
+            onClick={() => setSelectedTripId(trip.id)}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              selectedTripId === trip.id 
+                ? 'bg-mountain-primary text-white shadow-md' 
+                : 'bg-white text-slate-400'
+            }`}
+          >
+            {trip.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Overview Card */}
+      <section className="bg-white rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Spent</div>
+            <div className="text-3xl font-black font-headline text-mountain-primary">${totalSpent.toLocaleString()}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Remaining</div>
+            <div className="text-lg font-bold text-slate-700">${remaining.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              className={`h-full rounded-full ${progress > 90 ? 'bg-rose-500' : 'bg-mountain-primary'}`}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <span>0%</span>
+            <span>Budget: ${totalBudget.toLocaleString()}</span>
+            <span>100%</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Expenses List */}
+      <section className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold font-headline">Expenses</h2>
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="w-10 h-10 rounded-full bg-mountain-primary text-white flex items-center justify-center shadow-lg shadow-mountain-primary/20 hover:scale-110 transition-transform"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {tripExpenses.length > 0 ? tripExpenses.map(expense => {
+            const Icon = categoryIcons[expense.category];
+            return (
+              <div key={expense.id} className="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">{expense.description}</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{expense.category} • {expense.date}</div>
+                  </div>
+                </div>
+                <div className="text-sm font-black text-on-surface">-${expense.amount}</div>
+              </div>
+            );
+          }) : (
+            <div className="text-center py-12 text-slate-400 italic font-medium">No expenses recorded for this trip.</div>
+          )}
+        </div>
+      </section>
+
+      {/* Add Expense Modal */}
+      <AnimatePresence>
+        {showAddForm && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddForm(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-6 shadow-2xl"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-black font-headline">Add Expense</h3>
+                <button onClick={() => setShowAddForm(false)} className="text-slate-400"><X size={24} /></button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Amount</label>
+                  <input 
+                    required
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={e => setFormData({...formData, amount: e.target.value})}
+                    placeholder="0.00"
+                    className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Category</label>
+                  <select 
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value as any})}
+                    className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none appearance-none"
+                  >
+                    <option>Food</option>
+                    <option>Transport</option>
+                    <option>Stay</option>
+                    <option>Activities</option>
+                    <option>Shopping</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Description</label>
+                  <input 
+                    required
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    placeholder="e.g. Dinner at Savoy"
+                    className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full bg-mountain-primary text-white p-5 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-mountain-primary/20 mt-4"
+                >
+                  Save Expense
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 const ProfileScreen = () => {
   return (
     <motion.div
@@ -671,9 +996,31 @@ const ProfileScreen = () => {
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-  const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
-  const [packingItems, setPackingItems] = useState<PackingItem[]>(MOCK_PACKING_LIST);
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    const saved = localStorage.getItem('trips');
+    return saved ? JSON.parse(saved) : MOCK_TRIPS;
+  });
+  const [packingItems, setPackingItems] = useState<PackingItem[]>(() => {
+    const saved = localStorage.getItem('packingItems');
+    return saved ? JSON.parse(saved) : MOCK_PACKING_LIST;
+  });
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('expenses');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+
+  React.useEffect(() => {
+    localStorage.setItem('trips', JSON.stringify(trips));
+  }, [trips]);
+
+  React.useEffect(() => {
+    localStorage.setItem('packingItems', JSON.stringify(packingItems));
+  }, [packingItems]);
+
+  React.useEffect(() => {
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+  }, [expenses]);
 
   const handleSelectTrip = (trip: Trip) => {
     setSelectedTrip(trip);
@@ -708,6 +1055,18 @@ export default function App() {
     setPackingItems([...packingItems, newItem]);
   };
 
+  const handleAddExpense = (newExpense: Partial<Expense>) => {
+    const expense: Expense = {
+      id: Math.random().toString(36).substr(2, 9),
+      tripId: newExpense.tripId || '',
+      amount: newExpense.amount || 0,
+      category: newExpense.category || 'Food',
+      description: newExpense.description || '',
+      date: newExpense.date || new Date().toISOString().split('T')[0]
+    };
+    setExpenses([expense, ...expenses]);
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
@@ -716,6 +1075,8 @@ export default function App() {
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} />;
       case 'add':
         return <CreateTripScreen onCreate={handleCreateTrip} />;
+      case 'budget':
+        return <BudgetScreen trips={trips} expenses={expenses} onAddExpense={handleAddExpense} />;
       case 'packing':
         return <PackingListScreen items={packingItems} onToggle={handleTogglePacking} onAddItem={handleAddPackingItem} />;
       case 'profile':

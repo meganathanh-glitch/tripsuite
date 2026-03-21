@@ -33,4 +33,18 @@ export interface PackingItem {
   packed: boolean;
 }
 
-export type Screen = 'home' | 'trips' | 'add' | 'packing' | 'profile' | 'trip-detail';
+export interface Expense {
+  id: string;
+  tripId: string;
+  amount: number;
+  category: 'Food' | 'Transport' | 'Stay' | 'Activities' | 'Shopping';
+  description: string;
+  date: string;
+}
+
+export interface TripBudget {
+  tripId: string;
+  totalBudget: number;
+}
+
+export type Screen = 'home' | 'trips' | 'add' | 'packing' | 'profile' | 'trip-detail' | 'budget';
