@@ -641,9 +641,15 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
 
   const handleAiGenerate = async () => {
+    console.log('Starting AI Itinerary Generation...');
+    console.log('Trip Details:', { destination: trip.destination, dateRange: trip.dateRange });
+    console.log('AI Options:', aiOptions);
     setIsGenerating(true);
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      console.log('Calling API:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -667,18 +673,27 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
         })
       });
 
+      console.log('API Response Status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error Data:', errorData);
+        throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
+      console.log('API Data Received:', data);
+      
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log('Generated Text:', text);
       
       if (!text) {
         throw new Error('No content received from AI');
       }
 
       const generatedItinerary = JSON.parse(text);
+      console.log('Parsed Itinerary:', generatedItinerary);
+      
       const formattedItinerary = generatedItinerary.map((day: any) => ({
         ...day,
         activities: (day.activities || []).map((act: any) => ({
@@ -691,7 +706,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
       setShowAiModal(false);
     } catch (error) {
       console.error('AI Generation Error:', error);
-      alert('Failed to generate itinerary. Please check your API key and try again.');
+      alert(`Failed to generate itinerary: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -699,9 +714,14 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
   const handleAiSearch = async (day: number) => {
     if (!searchQuery.trim()) return;
+    console.log(`Starting AI Search for Day ${day}...`);
+    console.log('Search Query:', searchQuery);
     setIsSearching(true);
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      console.log('Calling API:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -720,22 +740,30 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
         })
       });
 
+      console.log('API Response Status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error Data:', errorData);
+        throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
+      console.log('API Data Received:', data);
+      
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log('Generated Text:', text);
 
       if (!text) {
         throw new Error('No content received from AI');
       }
 
       const suggestions = JSON.parse(text);
+      console.log('Parsed Suggestions:', suggestions);
       setAiSuggestions(suggestions);
     } catch (error) {
       console.error('AI Search Error:', error);
-      alert('Failed to get suggestions. Please try again.');
+      alert(`Failed to get suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSearching(false);
     }
