@@ -4,7 +4,7 @@ export interface Activity {
   title: string;
   location: string;
   description: string;
-  type: 'travel' | 'activity' | 'food' | 'stay';
+  type: 'Transport' | 'Sightseeing' | 'Food' | 'Activity' | 'Shopping' | 'Rest';
   image?: string;
 }
 
@@ -44,6 +44,7 @@ export interface Trip {
   flights?: Flight[];
   stays?: Stay[];
   photos?: string[];
+  isLocked?: boolean;
 }
 
 export interface PackingItem {

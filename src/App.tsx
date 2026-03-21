@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { 
   Home, 
   Map as MapIcon, 
@@ -40,7 +41,14 @@ import {
   Hotel,
   Image as ImageIcon,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  Lock,
+  Unlock,
+  Trash2,
+  Edit2,
+  ShoppingBag,
+  Coffee
 } from 'lucide-react';
 import { MOCK_TRIPS, MOCK_PACKING_LIST } from './constants';
 import { Trip, Screen, PackingItem, Expense } from './types';
@@ -612,10 +620,176 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
   );
 };
 
-const TripDetailScreen = ({ trip, onBack, expenses }: { trip: Trip, onBack: () => void, expenses: Expense[] }) => {
+const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip, onBack: () => void, expenses: Expense[], onUpdateTrip: (trip: Trip) => void }) => {
   const [activeDay, setActiveDay] = useState(1);
   const [activeTab, setActiveTab] = useState('Itinerary');
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiOptions, setAiOptions] = useState({
+    style: 'Adventure',
+    budget: 'Mid',
+    interests: [] as string[]
+  });
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
+
+  const handleAiGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Generate a detailed day-by-day itinerary for a trip to ${trip.destination}. 
+        Trip Dates: ${trip.dateRange}. 
+        Style: ${aiOptions.style}. 
+        Budget: ${aiOptions.budget}. 
+        Interests: ${aiOptions.interests.join(', ')}.
+        Return a JSON array of days, each with a 'day' number, 'title', and an 'activities' array.
+        Each activity should have 'time', 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                day: { type: Type.NUMBER },
+                title: { type: Type.STRING },
+                activities: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      time: { type: Type.STRING },
+                      title: { type: Type.STRING },
+                      location: { type: Type.STRING },
+                      description: { type: Type.STRING },
+                      type: { type: Type.STRING }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const generatedItinerary = JSON.parse(response.text || '[]');
+      const formattedItinerary = generatedItinerary.map((day: any) => ({
+        ...day,
+        activities: day.activities.map((act: any) => ({
+          ...act,
+          id: Math.random().toString(36).substr(2, 9)
+        }))
+      }));
+
+      onUpdateTrip({ ...trip, itinerary: formattedItinerary });
+      setShowAiModal(false);
+    } catch (error) {
+      console.error('AI Generation Error:', error);
+      alert('Failed to generate itinerary. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAiSearch = async (day: number) => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Suggest 3 activities or places for ${searchQuery} in ${trip.destination}.
+        Return a JSON array of objects with 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                location: { type: Type.STRING },
+                description: { type: Type.STRING },
+                type: { type: Type.STRING }
+              }
+            }
+          }
+        }
+      });
+
+      const suggestions = JSON.parse(response.text || '[]');
+      setAiSuggestions(suggestions);
+    } catch (error) {
+      console.error('AI Search Error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddActivity = (day: number, activity: any) => {
+    const newItinerary = [...trip.itinerary];
+    const dayIndex = newItinerary.findIndex(d => d.day === day);
+    
+    const newActivity = {
+      ...activity,
+      id: Math.random().toString(36).substr(2, 9),
+      time: activity.time || '10:00 AM'
+    };
+
+    if (dayIndex > -1) {
+      newItinerary[dayIndex].activities.push(newActivity);
+    } else {
+      newItinerary.push({
+        day,
+        title: `Day ${day}`,
+        activities: [newActivity]
+      });
+    }
+
+    onUpdateTrip({ ...trip, itinerary: newItinerary.sort((a, b) => a.day - b.day) });
+    setAiSuggestions([]);
+    setSearchQuery('');
+  };
+
+  const handleDeleteActivity = (day: number, activityId: string) => {
+    const newItinerary = trip.itinerary.map(d => {
+      if (d.day === day) {
+        return { ...d, activities: d.activities.filter(a => a.id !== activityId) };
+      }
+      return d;
+    });
+    onUpdateTrip({ ...trip, itinerary: newItinerary });
+  };
+
+  const handleAddDay = () => {
+    const nextDay = trip.itinerary.length > 0 ? Math.max(...trip.itinerary.map(d => d.day)) + 1 : 1;
+    const newItinerary = [...trip.itinerary, { day: nextDay, title: `Day ${nextDay}`, activities: [] }];
+    onUpdateTrip({ ...trip, itinerary: newItinerary.sort((a, b) => a.day - b.day) });
+    setActiveDay(nextDay);
+  };
+
+  const handleToggleLock = () => {
+    onUpdateTrip({ ...trip, isLocked: !trip.isLocked });
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'Transport': return <Car size={16} />;
+      case 'Sightseeing': return <MapPin size={16} />;
+      case 'Food': return <Utensils size={16} />;
+      case 'Activity': return <Camera size={16} />;
+      case 'Shopping': return <ShoppingBag size={16} />;
+      case 'Rest': return <Coffee size={16} />;
+      default: return <MapPin size={16} />;
+    }
+  };
 
   const tripExpenses = expenses.filter(e => e.tripId === trip.id);
   const totalSpent = tripExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -624,52 +798,134 @@ const TripDetailScreen = ({ trip, onBack, expenses }: { trip: Trip, onBack: () =
     switch (activeTab) {
       case 'Itinerary':
         return (
-          <div className="mt-8 space-y-10 relative">
-            {trip.itinerary.length > 0 && <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-slate-200" />}
-            
-            {trip.itinerary.find(d => d.day === activeDay)?.activities.map((activity) => (
-              <div key={activity.id} className="relative pl-10">
-                <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-mountain-primary/10 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-mountain-primary" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-mountain-primary uppercase tracking-widest">
-                    <Clock size={12} /> {activity.time}
-                  </div>
-                  <h3 className="text-xl font-bold font-headline">{activity.title}</h3>
-                  <div className="flex items-center gap-1 text-slate-400 text-xs font-medium">
-                    <MapPin size={12} /> {activity.location}
-                  </div>
-                  <p className="text-slate-600 text-sm leading-relaxed">{activity.description}</p>
-                  
-                  {activity.image && (
-                    <div className="mt-4 rounded-3xl overflow-hidden h-48">
-                      <img src={activity.image} alt={activity.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </div>
-                  )}
+          <div className="mt-8 space-y-8 relative">
+            {/* AI Generate Button */}
+            {!trip.isLocked && (
+              <button 
+                onClick={() => setShowAiModal(true)}
+                className="w-full bg-gradient-to-r from-mountain-primary to-emerald-600 text-white p-4 rounded-3xl font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-mountain-primary/20 hover:scale-[1.02] transition-transform"
+              >
+                <Sparkles size={20} />
+                AI Generate Itinerary
+              </button>
+            )}
 
-                  <div className="flex gap-2 mt-2">
-                    {activity.type === 'travel' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Car size={16} /></div>}
-                    {activity.type === 'activity' && <div className="p-2 rounded-xl bg-slate-100 text-slate-500"><Camera size={16} /></div>}
-                  </div>
-                </div>
-              </div>
-            ))}
+            {/* Finalize/Edit Toggle */}
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold font-headline flex items-center gap-2">
+                Itinerary 
+                {trip.isLocked && (
+                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <CheckCircle2 size={10} /> Finalized
+                  </span>
+                )}
+              </h2>
+              <button 
+                onClick={handleToggleLock}
+                className={`p-2 rounded-xl transition-all ${trip.isLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}
+              >
+                {trip.isLocked ? <Lock size={18} /> : <Unlock size={18} />}
+              </button>
+            </div>
 
-            {trip.itinerary.find(d => d.day === activeDay)?.dinner && (
-              <div className="bg-surface-container-lowest p-4 rounded-3xl flex items-center justify-between mt-8 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
-                    <Utensils size={18} />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dinner</div>
-                    <div className="text-sm font-bold">{trip.itinerary.find(d => d.day === activeDay)?.dinner}</div>
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-slate-300" />
+            {/* AI Search Bar per Day */}
+            {!trip.isLocked && (
+              <div className="relative">
+                <input 
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch(activeDay)}
+                  placeholder={`Search suggestions for Day ${activeDay}...`}
+                  className="w-full bg-white p-4 pr-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
+                />
+                <button 
+                  onClick={() => handleAiSearch(activeDay)}
+                  disabled={isSearching}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-mountain-primary"
+                >
+                  {isSearching ? <div className="w-5 h-5 border-2 border-mountain-primary border-t-transparent rounded-full animate-spin" /> : <Search size={20} />}
+                </button>
               </div>
             )}
+
+            {/* AI Suggestions */}
+            {aiSuggestions.length > 0 && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">AI Suggestions</div>
+                {aiSuggestions.map((s, i) => (
+                  <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-mountain-primary/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-mountain-primary/5 text-mountain-primary flex items-center justify-center">
+                        {getActivityIcon(s.type)}
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm">{s.title}</div>
+                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{s.location}</div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleAddActivity(activeDay, s)}
+                      className="bg-mountain-primary text-white p-2 rounded-xl"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Activities List */}
+            <div className="relative space-y-10">
+              {trip.itinerary.find(d => d.day === activeDay)?.activities.length ? (
+                <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-slate-200" />
+              ) : null}
+              
+              {trip.itinerary.find(d => d.day === activeDay)?.activities.map((activity) => (
+                <div key={activity.id} className="relative pl-10 group">
+                  <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-mountain-primary/10 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-mountain-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-mountain-primary uppercase tracking-widest">
+                        <Clock size={12} /> {activity.time}
+                      </div>
+                      {!trip.isLocked && (
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleDeleteActivity(activeDay, activity.id)} className="text-rose-500 p-1"><Trash2 size={14} /></button>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-bold font-headline">{activity.title}</h3>
+                    <div className="flex items-center gap-1 text-slate-400 text-xs font-medium">
+                      <MapPin size={12} /> {activity.location}
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed">{activity.description}</p>
+                    
+                    <div className="flex gap-2 mt-2">
+                      <div className="p-2 rounded-xl bg-slate-100 text-slate-500">
+                        {getActivityIcon(activity.type)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {!trip.isLocked && (
+                <button 
+                  onClick={() => setShowAddActivityModal(true)}
+                  className="w-full border-2 border-dashed border-slate-200 p-6 rounded-[32px] flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-mountain-primary/30 hover:text-mountain-primary transition-all"
+                >
+                  <Plus size={24} />
+                  <span className="text-xs font-black uppercase tracking-widest">Add Activity</span>
+                </button>
+              )}
+
+              {trip.itinerary.find(d => d.day === activeDay)?.activities.length === 0 && (
+                <div className="text-center py-12 text-slate-400 italic font-medium">No activities planned for this day.</div>
+              )}
+            </div>
           </div>
         );
       case 'Flights':
@@ -840,12 +1096,12 @@ const TripDetailScreen = ({ trip, onBack, expenses }: { trip: Trip, onBack: () =
 
       {/* Day Selector (only for Itinerary) */}
       {activeTab === 'Itinerary' && (
-        <div className="flex gap-3 mt-8 overflow-x-auto pb-2 scrollbar-hide">
-          {trip.itinerary.length > 0 ? trip.itinerary.map(day => (
+        <div className="flex gap-3 mt-8 overflow-x-auto pb-2 scrollbar-hide items-center">
+          {trip.itinerary.map(day => (
             <button
               key={day.day}
               onClick={() => setActiveDay(day.day)}
-              className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${
+              className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
                 activeDay === day.day 
                   ? 'bg-mountain-primary text-white shadow-lg shadow-mountain-primary/20' 
                   : 'bg-surface-container-lowest text-slate-500'
@@ -853,13 +1109,198 @@ const TripDetailScreen = ({ trip, onBack, expenses }: { trip: Trip, onBack: () =
             >
               Day {day.day}
             </button>
-          )) : (
+          ))}
+          {!trip.isLocked && (
+            <button 
+              onClick={handleAddDay}
+              className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-mountain-primary/10 hover:text-mountain-primary transition-all shrink-0"
+            >
+              <Plus size={20} />
+            </button>
+          )}
+          {trip.itinerary.length === 0 && (
             <div className="text-slate-400 font-medium text-sm italic">No itinerary planned yet.</div>
           )}
         </div>
       )}
 
       {renderTabContent()}
+
+      {/* AI Generate Modal */}
+      <AnimatePresence>
+        {showAiModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isGenerating && setShowAiModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-8 shadow-2xl overflow-hidden"
+            >
+              {isGenerating && (
+                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 space-y-4">
+                  <div className="w-16 h-16 border-4 border-mountain-primary border-t-transparent rounded-full animate-spin" />
+                  <h3 className="text-xl font-black font-headline">Crafting your adventure...</h3>
+                  <p className="text-slate-500 text-sm">Gemini is exploring the best spots in {trip.destination} for you.</p>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-mountain-primary/10 text-mountain-primary flex items-center justify-center">
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black font-headline">AI Planner</h3>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Powered by Gemini</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAiModal(false)} className="text-slate-300"><X size={24} /></button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Travel Style</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Adventure', 'Relaxed', 'Cultural', 'Family', 'Foodie'].map(style => (
+                      <button 
+                        key={style}
+                        onClick={() => setAiOptions({...aiOptions, style})}
+                        className={`p-3 rounded-2xl text-xs font-bold transition-all ${aiOptions.style === style ? 'bg-mountain-primary text-white shadow-md' : 'bg-slate-50 text-slate-500'}`}
+                      >
+                        {style}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Budget</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Budget', 'Mid', 'Luxury'].map(b => (
+                      <button 
+                        key={b}
+                        onClick={() => setAiOptions({...aiOptions, budget: b})}
+                        className={`p-3 rounded-2xl text-xs font-bold transition-all ${aiOptions.budget === b ? 'bg-mountain-primary text-white shadow-md' : 'bg-slate-50 text-slate-500'}`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Interests</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Hiking', 'Museums', 'Nightlife', 'Shopping', 'Beach', 'History', 'Nature'].map(interest => (
+                      <button 
+                        key={interest}
+                        onClick={() => {
+                          const newInterests = aiOptions.interests.includes(interest)
+                            ? aiOptions.interests.filter(i => i !== interest)
+                            : [...aiOptions.interests, interest];
+                          setAiOptions({...aiOptions, interests: newInterests});
+                        }}
+                        className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${aiOptions.interests.includes(interest) ? 'bg-mountain-primary/10 text-mountain-primary border-mountain-primary/20 border' : 'bg-slate-50 text-slate-400 border-transparent border'}`}
+                      >
+                        {interest}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleAiGenerate}
+                  className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Generate Itinerary
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Manual Add Activity Modal */}
+      <AnimatePresence>
+        {showAddActivityModal && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddActivityModal(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-6 shadow-2xl"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-black font-headline">Add Activity</h3>
+                <button onClick={() => setShowAddActivityModal(false)} className="text-slate-400"><X size={24} /></button>
+              </div>
+
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleAddActivity(activeDay, {
+                    title: formData.get('title'),
+                    time: formData.get('time'),
+                    location: formData.get('location'),
+                    description: formData.get('description'),
+                    type: formData.get('type')
+                  });
+                  setShowAddActivityModal(false);
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Title</label>
+                  <input name="title" required className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none" placeholder="Activity name" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Time</label>
+                    <input name="time" type="time" required className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Category</label>
+                    <select name="type" className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none appearance-none">
+                      <option>Transport</option>
+                      <option>Sightseeing</option>
+                      <option>Food</option>
+                      <option>Activity</option>
+                      <option>Shopping</option>
+                      <option>Rest</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Location</label>
+                  <input name="location" required className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none" placeholder="Where to?" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Description</label>
+                  <textarea name="description" className="w-full bg-slate-50 p-4 rounded-2xl font-bold text-sm focus:outline-none h-24 resize-none" placeholder="Details..." />
+                </div>
+                <button type="submit" className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-lg shadow-mountain-primary/20">
+                  Save Activity
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
@@ -1446,6 +1887,11 @@ export default function App() {
     setCurrentScreen('trips');
   };
 
+  const handleUpdateTrip = (updatedTrip: Trip) => {
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+    setSelectedTrip(updatedTrip);
+  };
+
   const handleTogglePacking = (id: string) => {
     setPackingItems(prev => prev.map(item => item.id === id ? { ...item, packed: !item.packed } : item));
   };
@@ -1493,7 +1939,12 @@ export default function App() {
         return <RegisterScreen onRegister={handleRegister} onNavigateToSignIn={() => setCurrentScreen('signin')} />;
       case 'trip-detail':
         return selectedTrip ? (
-          <TripDetailScreen trip={selectedTrip} onBack={() => setCurrentScreen('trips')} expenses={expenses} />
+          <TripDetailScreen 
+            trip={selectedTrip} 
+            onBack={() => setCurrentScreen('trips')} 
+            expenses={expenses} 
+            onUpdateTrip={handleUpdateTrip}
+          />
         ) : <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
       default:
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;

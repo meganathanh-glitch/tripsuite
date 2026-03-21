@@ -20,7 +20,7 @@ export const MOCK_TRIPS: Trip[] = [
             title: 'Arrive at Coimbatore Airport',
             location: 'CJB Airport Terminal 1',
             description: 'Private cab will be waiting at Gate 4. 3-hour drive to Ooty via Mettupalayam ghat roads.',
-            type: 'travel'
+            type: 'Transport'
           },
           {
             id: 'a2',
@@ -28,7 +28,7 @@ export const MOCK_TRIPS: Trip[] = [
             title: 'Ooty Lake Boating',
             location: 'North Lake Road',
             description: 'Enjoy a peaceful pedal boat ride as the fog settles. Great for family photos.',
-            type: 'activity',
+            type: 'Activity',
             image: 'https://images.unsplash.com/photo-1581791534721-e599df4417f7?auto=format&fit=crop&w=800&q=80'
           }
         ],
@@ -45,7 +45,7 @@ export const MOCK_TRIPS: Trip[] = [
             title: 'Tea Museum Visit',
             location: 'Doddabetta Road',
             description: 'Learn about the history of tea in the Nilgiris and taste fresh brews.',
-            type: 'activity'
+            type: 'Activity'
           }
         ]
       }
