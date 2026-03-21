@@ -100,6 +100,7 @@ const TripBadge = ({ status }: { status: Trip['status'] }) => {
 // --- Screens ---
 
 const getDaysUntil = (dateRange: string) => {
+  if (!dateRange || typeof dateRange !== 'string') return 0;
   try {
     const startDateStr = dateRange.split(' — ')[0];
     const startDate = new Date(startDateStr);
@@ -1142,7 +1143,7 @@ const ExploreScreen = () => {
 
 const ProfileScreen = ({ trips }: { trips: Trip[] }) => {
   const totalPhotos = trips.reduce((sum, trip) => sum + (trip.photos?.length || 0), 0);
-  const countries = new Set(trips.map(t => t.destination.split(',').pop()?.trim())).size;
+  const countries = new Set(trips.map(t => t.destination?.split(',').pop()?.trim()).filter(Boolean)).size;
 
   return (
     <motion.div
