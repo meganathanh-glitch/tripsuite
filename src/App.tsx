@@ -80,11 +80,7 @@ const BottomNav = ({ activeTab, onTabChange }: { activeTab: Screen, onTabChange:
             <tab.icon size={isActive ? 22 : 20} strokeWidth={isActive ? 2.5 : 2} />
             <span className="text-[9px] font-bold uppercase tracking-widest">{tab.label}</span>
             {isActive && (
-              <motion.div
-                layoutId="activeTabIndicator"
-                className="absolute -top-1 w-8 h-1 bg-mountain-primary rounded-full"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
+              <div className="absolute -top-1 w-8 h-1 bg-mountain-primary rounded-full" />
             )}
           </button>
         );
@@ -117,7 +113,6 @@ const SignInScreen = ({ onSignIn, onNavigateToRegister }: { onSignIn: (email: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('SignInScreen handleSubmit called');
     setLoading(true);
     try {
       await onSignIn(email, password);
@@ -626,7 +621,6 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const [activeDay, setActiveDay] = useState(1);
   const [activeTab, setActiveTab] = useState('Itinerary');
   const [showAiModal, setShowAiModal] = useState(false);
-  console.log('TripDetailScreen render - showAiModal:', showAiModal);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiOptions, setAiOptions] = useState({
     style: 'Adventure',
@@ -639,27 +633,12 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    console.log('TripDetailScreen mounted for trip:', trip.name);
-    window.alert('TripDetailScreen mounted for ' + trip.name);
-    const handleClick = (e: MouseEvent) => {
-      console.log('Global click detected in TripDetailScreen:', e.target);
-    };
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
-  }, [trip.name]);
-
   const daysUntil = trip.status === 'upcoming' ? getDaysUntil(trip.dateRange) : 0;
 
   const handleAiGenerate = async () => {
-    window.alert('handleAiGenerate function entered');
-    console.log('Starting AI Itinerary Generation...');
-    console.log('Trip Details:', { destination: trip.destination, dateRange: trip.dateRange });
-    console.log('AI Options:', aiOptions);
     setIsGenerating(true);
     try {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      console.log('Calling API:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -685,26 +664,20 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
         })
       });
 
-      console.log('API Response Status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('API Error Data:', errorData);
         throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      console.log('API Data Received:', data);
       
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      console.log('Generated Text:', text);
       
       if (!text) {
         throw new Error('No content received from AI');
       }
 
       const generatedItinerary = JSON.parse(text);
-      console.log('Parsed Itinerary:', generatedItinerary);
       
       const formattedItinerary = generatedItinerary.map((day: any) => ({
         ...day,
@@ -725,14 +698,10 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   };
 
   const handleAiSearch = async (day: number) => {
-    window.alert('handleAiSearch function entered for day ' + day);
     if (!searchQuery.trim()) return;
-    console.log(`Starting AI Search for Day ${day}...`);
-    console.log('Search Query:', searchQuery);
     setIsSearching(true);
     try {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      console.log('Calling API:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -753,26 +722,20 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
         })
       });
 
-      console.log('API Response Status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('API Error Data:', errorData);
         throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      console.log('API Data Received:', data);
       
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      console.log('Generated Text:', text);
 
       if (!text) {
         throw new Error('No content received from AI');
       }
 
       const suggestions = JSON.parse(text);
-      console.log('Parsed Suggestions:', suggestions);
       setAiSuggestions(suggestions);
     } catch (error) {
       console.error('AI Search Error:', error);
@@ -851,11 +814,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
             {/* AI Generate Button */}
             {!trip.isLocked && (
               <button 
-                onClick={() => {
-                  console.log('Opening AI Planner Modal');
-                  window.alert('Opening AI Planner Modal');
-                  setShowAiModal(true);
-                }}
+                onClick={() => setShowAiModal(true)}
                 className="w-full bg-gradient-to-r from-mountain-primary to-emerald-600 text-white p-4 rounded-3xl font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-mountain-primary/20 hover:scale-[1.02] transition-transform"
               >
                 <Sparkles size={20} />
@@ -890,22 +849,20 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      console.log('Search Enter pressed');
-                      window.alert('Search Enter pressed');
                       handleAiSearch(activeDay);
                     }
                   }}
+                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
                   placeholder={`Search suggestions for Day ${activeDay}...`}
                   className="w-full bg-white p-4 pr-12 rounded-2xl font-bold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-mountain-primary/20"
                 />
                 <button 
                   type="button"
                   onClick={() => {
-                    console.log('Search button clicked');
-                    window.alert('Search button clicked');
                     handleAiSearch(activeDay);
                   }}
                   disabled={isSearching}
+                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 20 }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-mountain-primary"
                 >
                   {isSearching ? <div className="w-5 h-5 border-2 border-mountain-primary border-t-transparent rounded-full animate-spin" /> : <Search size={20} />}
@@ -1199,7 +1156,6 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => {
-                console.log('Modal backdrop clicked');
                 if (!isGenerating) setShowAiModal(false);
               }}
               className="absolute inset-0 bg-black/60 backdrop-blur-md z-0"
@@ -1230,8 +1186,6 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
                 </div>
                 <button 
                   onClick={() => {
-                    console.log('Modal close button clicked');
-                    window.alert('Modal close button clicked');
                     setShowAiModal(false);
                   }} 
                   className="text-slate-300 p-2"
@@ -1293,13 +1247,9 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
                 <button 
                   type="button"
-                  onClick={() => {
-                    console.log('Generate Itinerary button clicked - calling handleAiGenerate');
-                    window.alert('Generate Itinerary button clicked - calling handleAiGenerate');
-                    handleAiGenerate();
-                  }}
+                  onClick={() => { handleAiGenerate(); }}
                   disabled={isGenerating}
-                  style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
+                  style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                 >
                   {isGenerating ? (
@@ -1857,7 +1807,6 @@ const ProfileScreen = ({ trips, userName, onLogout }: { trips: Trip[], userName:
 // --- Main App ---
 
 export default function App() {
-  console.log('App component rendering');
   const [session, setSession] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
@@ -1917,14 +1866,12 @@ export default function App() {
   }, [expenses]);
 
   const handleSignIn = async (email: string, password: string) => {
-    console.log('handleSignIn called for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error('Sign in error:', error.message);
       alert(error.message);
       throw error;
     }
-    console.log('Sign in successful');
     if (data.session) {
       setIsLoggedIn(true);
       setUserName(data.session.user.user_metadata.full_name || data.session.user.email?.split('@')[0] || 'Traveler');
@@ -1951,19 +1898,16 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    console.log('handleLogout called');
     const { error } = await supabase.auth.signOut();
     if (error) alert(error.message);
   };
 
   const handleSelectTrip = (trip: Trip) => {
-    console.log('Selecting trip:', trip.name);
     setSelectedTrip(trip);
     setCurrentScreen('trip-detail');
   };
 
   const handleCreateTrip = (newTrip: Partial<Trip>) => {
-    console.log('handleCreateTrip called for:', newTrip.name);
     const trip: Trip = {
       id: Math.random().toString(36).substr(2, 9),
       name: newTrip.name || 'New Trip',
@@ -1982,18 +1926,15 @@ export default function App() {
   };
 
   const handleUpdateTrip = (updatedTrip: Trip) => {
-    console.log('Updating trip:', updatedTrip.name);
     setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
     setSelectedTrip(updatedTrip);
   };
 
   const handleTogglePacking = (id: string) => {
-    console.log('handleTogglePacking called for:', id);
     setPackingItems(prev => prev.map(item => item.id === id ? { ...item, packed: !item.packed } : item));
   };
 
   const handleAddPackingItem = (category: string, name: string, tripId: string) => {
-    console.log('handleAddPackingItem called for:', name);
     const newItem: PackingItem = {
       id: Math.random().toString(36).substr(2, 9),
       category,
@@ -2005,7 +1946,6 @@ export default function App() {
   };
 
   const handleAddExpense = (newExpense: Partial<Expense>) => {
-    console.log('handleAddExpense called for:', newExpense.description);
     const expense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       tripId: newExpense.tripId || '',
@@ -2018,7 +1958,6 @@ export default function App() {
   };
 
   const renderScreen = () => {
-    console.log('Rendering screen:', currentScreen);
     switch (currentScreen) {
       case 'trips':
         return <TripsListScreen trips={trips} onSelectTrip={handleSelectTrip} userName={userName} />;
