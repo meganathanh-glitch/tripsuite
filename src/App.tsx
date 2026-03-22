@@ -614,7 +614,7 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
   );
 };
 
-const GEMINI_API_KEY = 'AIzaSyC3UVbfNOHrMqOVkLMbODFnnsFZ9aAMwGE';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip, onBack: () => void, expenses: Expense[], onUpdateTrip: (trip: Trip) => void }) => {
   const [activeDay, setActiveDay] = useState(1);
@@ -637,41 +637,27 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const handleAiGenerate = async () => {
     setIsGenerating(true);
     try {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Generate a detailed day-by-day itinerary for a trip to ${trip.destination}. 
-              Trip Dates: ${trip.dateRange}. 
-              Style: ${aiOptions.style}. 
-              Budget: ${aiOptions.budget}. 
-              Interests: ${aiOptions.interests.join(', ')}.
-              Return a JSON array of days, each with a 'day' number, 'title', and an 'activities' array.
-              Each activity should have 'time', 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
-              IMPORTANT: Return ONLY the JSON array, no other text.`
-            }]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json",
-          }
-        })
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{
+          parts: [{
+            text: `Generate a detailed day-by-day itinerary for a trip to ${trip.destination}. 
+            Trip Dates: ${trip.dateRange}. 
+            Style: ${aiOptions.style}. 
+            Budget: ${aiOptions.budget}. 
+            Interests: ${aiOptions.interests.join(', ')}.
+            Return a JSON array of days, each with a 'day' number, 'title', and an 'activities' array.
+            Each activity should have 'time', 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
+            IMPORTANT: Return ONLY the JSON array, no other text.`
+          }]
+        }],
+        config: {
+          responseMimeType: "application/json",
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      const data = await response.json();
-      
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
+      const text = response.text;
       if (!text) {
         throw new Error('No content received from AI');
       }
@@ -700,36 +686,22 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Suggest 3 activities or places for ${searchQuery} in ${trip.destination}.
-              Return a JSON array of objects with 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
-              IMPORTANT: Return ONLY the JSON array, no other text.`
-            }]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json",
-          }
-        })
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{
+          parts: [{
+            text: `Suggest 3 activities or places for ${searchQuery} in ${trip.destination}.
+            Return a JSON array of objects with 'title', 'location', 'description', and 'type' (one of: Transport, Sightseeing, Food, Activity, Shopping, Rest).
+            IMPORTANT: Return ONLY the JSON array, no other text.`
+          }]
+        }],
+        config: {
+          responseMimeType: "application/json",
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      const data = await response.json();
-      
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
+      const text = response.text;
       if (!text) {
         throw new Error('No content received from AI');
       }
@@ -1152,12 +1124,13 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
       {/* AI Generate Modal */}
       <AnimatePresence>
         {showAiModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto overflow-visible">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (!isGenerating) setShowAiModal(false);
               }}
               className="absolute inset-0 bg-black/60 backdrop-blur-md z-0"
@@ -1166,7 +1139,8 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-md bg-white rounded-[40px] p-8 space-y-8 shadow-2xl overflow-hidden z-10 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-[40px] p-8 space-y-8 shadow-2xl z-[200] pointer-events-auto"
             >
               {isGenerating && (
                 <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 space-y-4">
@@ -1249,7 +1223,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
                 <button 
                   type="button"
-                  onClick={() => { window.alert('GENERATE CLICKED'); handleAiGenerate(); }}
+                  onClick={() => { handleAiGenerate(); }}
                   disabled={isGenerating}
                   style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
