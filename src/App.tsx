@@ -614,7 +614,7 @@ const CreateTripScreen = ({ onCreate }: { onCreate: (trip: Partial<Trip>) => voi
   );
 };
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip, onBack: () => void, expenses: Expense[], onUpdateTrip: (trip: Trip) => void }) => {
   const [activeDay, setActiveDay] = useState(1);
@@ -637,7 +637,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
   const handleAiGenerate = async () => {
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [{
@@ -686,7 +686,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [{
@@ -1223,7 +1223,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
                 <button 
                   type="button"
-                  onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); handleAiGenerate(); }}
+                  onClick={(e) => { e.stopPropagation(); handleAiGenerate(); }}
                   disabled={isGenerating}
                   style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
