@@ -6,6 +6,8 @@ export interface Activity {
   description: string;
   type: 'Transport' | 'Sightseeing' | 'Food' | 'Activity' | 'Shopping' | 'Rest';
   image?: string;
+    endTime?: string;
+  duration?: string;
 }
 
 export interface DayPlan {
