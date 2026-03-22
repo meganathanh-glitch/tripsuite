@@ -433,7 +433,6 @@ const TripsListScreen = ({ trips, onSelectTrip, userName }: { trips: Trip[], onS
       <div className="space-y-6">
         {filteredTrips.length > 0 ? filteredTrips.map((trip) => (
           <motion.div 
-            layout
             key={trip.id}
             onClick={() => onSelectTrip(trip)}
             whileHover={{ scale: 1.02 }}
@@ -1106,11 +1105,14 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`text-sm font-bold uppercase tracking-widest pb-2 whitespace-nowrap transition-all ${
-              tab === activeTab ? 'text-mountain-primary border-b-2 border-mountain-primary' : 'text-slate-400'
+            className={`text-sm font-bold uppercase tracking-widest pb-2 whitespace-nowrap transition-all relative ${
+              tab === activeTab ? 'text-mountain-primary' : 'text-slate-400'
             }`}
           >
             {tab}
+            {tab === activeTab && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mountain-primary rounded-full" />
+            )}
           </button>
         ))}
       </div>
