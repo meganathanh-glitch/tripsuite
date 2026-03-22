@@ -1223,7 +1223,7 @@ const TripDetailScreen = ({ trip, onBack, expenses, onUpdateTrip }: { trip: Trip
 
                 <button 
                   type="button"
-                  onClick={() => { handleAiGenerate(); }}
+                  onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); handleAiGenerate(); }}
                   disabled={isGenerating}
                   style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   className="w-full bg-mountain-primary text-white p-5 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-mountain-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
