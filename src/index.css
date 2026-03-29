@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+
+@theme {
+  --color-primary: #065F46;
+  --color-primary-light: #0d9668;
+  --color-primary-dark: #064e3b;
+  --color-surface: #f6fafe;
+  --color-surface-container: #eaeef2;
+  --color-surface-container-low: #f0f4f8;
+  --color-on-surface: #171c1f;
+  --color-on-surface-muted: #5f6368;
+  --color-danger: #dc2626;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+  --font-heading: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+}
+
+input, select, textarea, button {
+  font-family: var(--font-body);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c8cc;
+  border-radius: 4px;
+}
+
+/* Toast overrides */
+.toast-compact > div {
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+}
